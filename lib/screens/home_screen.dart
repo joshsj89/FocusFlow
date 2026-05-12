@@ -7,6 +7,7 @@ import '../widgets/playback_controls.dart';
 import '../widgets/sound_selector_bar.dart';
 import '../widgets/timer_card.dart';
 import '../widgets/add_timer_sheet.dart';
+import '../widgets/streaks_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -57,7 +58,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _TopActionIcons(
-                    onAchievements: () {},
+                    onAchievements: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => const StreaksSheet(),
+                    ),
                     onMood: () {},
                   ),
                   const SizedBox(height: 4),
