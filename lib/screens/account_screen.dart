@@ -55,7 +55,7 @@ class AccountScreen extends StatelessWidget {
                         icon: Icons.vpn_key_outlined, 
                         title: 'Delete account', 
                         onTap: () {},
-                        color: const Color(0xFFFFDADA), // Light red background from Figma
+                        color: const Color(0xFFFFDADA),
                         titleColor: const Color(0xFF7A598F),
                       ),
                     ],
@@ -85,14 +85,14 @@ class _AccountHeader extends StatelessWidget {
         right: 20,
       ),
       decoration: BoxDecoration(
-        color: AppColors.teal.withOpacity(0.4), // Light teal background
+        color: AppColors.teal.withValues(alpha: 0.4),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: Row(
         children: [
           const CircleAvatar(
             radius: 35,
-            backgroundColor: Color(0xFFA694BC), // Purple-grey from Figma
+            backgroundColor: Color(0xFFA694BC),
             child: Icon(Icons.person, color: Colors.white, size: 40),
           ),
           const SizedBox(width: 15),
@@ -131,7 +131,7 @@ class _SettingsGroup extends StatelessWidget {
         ),
         Container(
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.purple.withOpacity(0.3)),
+            border: Border.all(color: AppColors.purple.withValues(alpha: 0.3)),
             borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
           ),
           child: Column(children: items),
