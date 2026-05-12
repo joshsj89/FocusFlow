@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:focusflow/widgets/timer_sheet_widgets.dart';
 
 
-class AddTimerSheet extends StatefulWidget {
-  const AddTimerSheet({super.key});
+class EditTimerSheet extends StatefulWidget {
+  const EditTimerSheet({super.key});
 
   @override
-  State<AddTimerSheet> createState() => _AddTimerSheetState();
+  State<EditTimerSheet> createState() => _EditTimerSheetState();
 }
 
-class _AddTimerSheetState extends State<AddTimerSheet> {
+class _EditTimerSheetState extends State<EditTimerSheet> {
   final _nameController = TextEditingController();
   final _customDurationController = TextEditingController();
   int? _selectedPreset = 25;
@@ -61,7 +61,7 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleRow(title: 'Add Timer',onClose: () => Navigator.of(context).pop()),
+            TitleRow(title: 'Edit Timer',onClose: () => Navigator.of(context).pop()),
             const SizedBox(height: 20),
             SectionLabel(text: 'Timer name'),
             const SizedBox(height: 8),

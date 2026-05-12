@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:focusflow/widgets/edit_timer_sheet.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
@@ -7,7 +8,7 @@ class TimerCard extends StatelessWidget {
   final int durationMins;
   final int sessions;
   final bool isActive;
-  final VoidCallback? onTap;
+  // final VoidCallback? onTap;
 
   const TimerCard({
     super.key,
@@ -15,13 +16,14 @@ class TimerCard extends StatelessWidget {
     required this.durationMins,
     required this.sessions,
     this.isActive = false,
-    this.onTap,
+    // this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      // onTap: onTap,
+      onTap: () => showDialog(context: context, builder: (_) => const EditTimerSheet()),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
