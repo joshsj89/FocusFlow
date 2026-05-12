@@ -6,6 +6,7 @@ import '../widgets/session_progress.dart';
 import '../widgets/playback_controls.dart';
 import '../widgets/sound_selector_bar.dart';
 import '../widgets/timer_card.dart';
+import '../widgets/add_timer_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -29,7 +30,10 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => showDialog<void>(
+          context: context,
+          builder: (_) => const AddTimerSheet(),
+        ),
         backgroundColor: AppColors.teal,
         foregroundColor: Colors.white,
         elevation: 4,
