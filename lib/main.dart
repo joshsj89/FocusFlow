@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:focusflow/screens/account_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'screens/home_screen.dart';
 
@@ -27,6 +28,7 @@ class FocusFlowApp extends StatelessWidget {
       home: const HomeScreen(),
       routes: {
         '/home': (context) => const HomeScreen(),
+        '/account': (context) => const AccountScreen(),
       },
     );
   }

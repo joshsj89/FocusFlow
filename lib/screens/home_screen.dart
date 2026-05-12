@@ -148,14 +148,19 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withAlpha(70),
+          GestureDetector(
+            onTap: () {
+              Navigator.pushNamed(context, '/account');
+            },
+            child: Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withAlpha(70),
+              ),
+              child: const Icon(Icons.person, color: Colors.white, size: 24),
             ),
-            child: const Icon(Icons.person, color: Colors.white, size: 24),
           ),
         ],
       ),
