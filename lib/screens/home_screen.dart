@@ -10,6 +10,7 @@ import '../widgets/timer_card.dart';
 import '../widgets/add_timer_sheet.dart';
 import '../widgets/streaks_sheet.dart';
 import '../widgets/session_complete_sheet.dart';
+import '../widgets/weekly_wellness_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -136,7 +137,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       context: context,
                       builder: (_) => const StreaksSheet(),
                     ),
-                    onMood: () {},
+                    onMood: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => const WeeklyWellnessSheet(),
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Center(
