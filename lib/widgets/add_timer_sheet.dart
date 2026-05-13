@@ -12,7 +12,7 @@ class AddTimerSheet extends StatefulWidget {
 class _AddTimerSheetState extends State<AddTimerSheet> {
   final _nameController = TextEditingController();
   final _customDurationController = TextEditingController();
-  int? _selectedPreset = 25;
+  int? _selectedPreset = 1;
   int _sessions = 2;
 
   static const _presets = [15, 25, 45];

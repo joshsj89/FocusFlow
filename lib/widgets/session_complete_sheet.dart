@@ -1,0 +1,220 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../theme/app_colors.dart';
+
+enum _Mood { great, alright, notWell, bad }
+
+class SessionCompleteSheet extends StatefulWidget {
+  final int focusMins;
+  final int sessionsCompleted;
+  final int totalSessions;
+
+  const SessionCompleteSheet({
+    super.key,
+    required this.focusMins,
+    required this.sessionsCompleted,
+    required this.totalSessions,
+  });
+
+  @override
+  State<SessionCompleteSheet> createState() => _SessionCompleteSheetState();
+}
+
+class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
+  _Mood? _selectedMood;
+
+  String get _focusTimeLabel {
+    if (widget.focusMins < 60) return '${widget.focusMins} mins';
+    final hrs = widget.focusMins ~/ 60;
+    final rem = widget.focusMins % 60;
+    return rem == 0 ? '${hrs}hrs' : '${hrs}hrs ${rem}m';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 40),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Header(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StatLine(label: 'Focus Time:', value: _focusTimeLabel),
+                const SizedBox(height: 4),
+                _StatLine(
+                  label: 'Session Completed:',
+                  value: '${widget.sessionsCompleted}/${widget.totalSessions}',
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'How are you feeling?',
+                  style: GoogleFonts.openSans(
+                    fontSize: 13,
+                    color: AppColors.darkNavy,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ..._Mood.values.map(
+                  (mood) => _MoodOption(
+                    mood: mood,
+                    selected: _selectedMood == mood,
+                    onTap: () => setState(() => _selectedMood = mood),
+                  ),
+                ),
+                const SizedBox(height: 18),
+                _DoneButton(onPressed: () => Navigator.of(context).pop(_selectedMood)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Header extends StatelessWidget {
+  const _Header();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.timerInnerFill,
+      padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Column(
+        children: [
+          Text(
+            'Session Complete',
+            style: GoogleFonts.openSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: AppColors.darkNavy,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Great Work!',
+            style: GoogleFonts.openSans(
+              fontSize: 13,
+              color: AppColors.subtitleText,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StatLine extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatLine({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final base = GoogleFonts.openSans(fontSize: 13, color: AppColors.darkNavy);
+    return Text.rich(
+      TextSpan(
+        children: [
+          TextSpan(text: label, style: base.copyWith(fontWeight: FontWeight.w700)),
+          TextSpan(text: ' $value', style: base),
+        ],
+      ),
+    );
+  }
+}
+
+class _MoodOption extends StatelessWidget {
+  final _Mood mood;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _MoodOption({
+    required this.mood,
+    required this.selected,
+    required this.onTap,
+  });
+
+  static const _labels = {
+    _Mood.great: 'Great!',
+    _Mood.alright: 'Alright.',
+    _Mood.notWell: 'Not too well..',
+    _Mood.bad: 'Bad.',
+  };
+
+  static const _colors = {
+    _Mood.great: Color(0xFF4CAF50),
+    _Mood.alright: Color(0xFFFFCA28),
+    _Mood.notWell: Color(0xFFFF7043),
+    _Mood.bad: Color(0xFFE91E63),
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 5),
+        child: Row(
+          children: [
+            Container(
+              width: 14,
+              height: 14,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: _colors[mood],
+              ),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              _labels[mood]!,
+              style: GoogleFonts.openSans(
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? AppColors.darkNavy : AppColors.subtitleText,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DoneButton extends StatelessWidget {
+  final VoidCallback onPressed;
+
+  const _DoneButton({required this.onPressed});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton(
+        onPressed: onPressed,
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: AppColors.teal, width: 1.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          backgroundColor: AppColors.timerInnerFill,
+        ),
+        child: Text(
+          'Done',
+          style: GoogleFonts.openSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.darkNavy,
+          ),
+        ),
+      ),
+    );
+  }
+}
