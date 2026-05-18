@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:focusflow/widgets/edit_timer_sheet.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
+import 'animated_press.dart';
 
 class TimerCard extends StatelessWidget {
   final String title;
@@ -21,8 +22,8 @@ class TimerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      // onTap: onTap,
+    return AnimatedPress(
+      pressedScale: 0.97,
       onTap: () => showDialog(context: context, builder: (_) => const EditTimerSheet()),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:focusflow/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'animated_press.dart';
 
 class TitleRow extends StatelessWidget {
   final String title;
@@ -22,7 +23,7 @@ class TitleRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        GestureDetector(
+        AnimatedPress(
           onTap: onClose,
           child: Container(
             width: 30,
@@ -138,8 +139,10 @@ class PresetPill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onTap,
+      pressedScale: 0.95,
+      hoveredScale: 1.02,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -265,7 +268,7 @@ class CounterButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onPressed,
       child: Icon(
         icon,
@@ -276,30 +279,52 @@ class CounterButton extends StatelessWidget {
   }
 }
 
-class ConfirmButton extends StatelessWidget {
+class ConfirmButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const ConfirmButton({super.key, required this.onPressed});
 
   @override
+  State<ConfirmButton> createState() => _ConfirmButtonState();
+}
+
+class _ConfirmButtonState extends State<ConfirmButton> {
+  bool _pressed = false;
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.teal, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          foregroundColor: AppColors.teal,
-          backgroundColor: AppColors.timerInnerFill,
-        ),
-        child: Text(
-          'Confirm',
-          style: GoogleFonts.openSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.darkNavy,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.95 : (_hovered ? 1.03 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: widget.onPressed,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.teal, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                foregroundColor: AppColors.teal,
+                backgroundColor: AppColors.timerInnerFill,
+              ),
+              child: Text(
+                'Confirm',
+                style: GoogleFonts.openSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkNavy,
+                ),
+              ),
+            ),
           ),
         ),
       ),

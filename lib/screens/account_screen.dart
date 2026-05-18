@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:focusflow/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/animated_press.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -258,7 +259,7 @@ class AccountDialog extends StatelessWidget {
                     color: Colors.black87,
                   ),
                 ),
-                GestureDetector(
+                AnimatedPress(
                   onTap: () => Navigator.pop(context),
                   child: const CircleAvatar(
                     backgroundColor: Color(0xFFA694BC),
@@ -301,30 +302,53 @@ class AccountDialog extends StatelessWidget {
   }
 }
 
-class _OverlayButton extends StatelessWidget {
+class _OverlayButton extends StatefulWidget {
   final String label;
   final Color? color;
   final VoidCallback onTap;
 
-  const _OverlayButton({required this.label, this.color, required this.onTap,});
+  const _OverlayButton({required this.label, this.color, required this.onTap});
+
+  @override
+  State<_OverlayButton> createState() => _OverlayButtonState();
+}
+
+class _OverlayButtonState extends State<_OverlayButton> {
+  bool _pressed = false;
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
-        decoration: BoxDecoration(
-          color: color ?? AppColors.teal.withValues(alpha: 0.1),
-          border: Border.all(color: AppColors.teal, width: 1.5),
-          borderRadius: BorderRadius.circular(15),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.openSans(
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-            color: Colors.black87,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.93 : (_hovered ? 1.04 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: InkWell(
+            onTap: widget.onTap,
+            borderRadius: BorderRadius.circular(15),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.color ?? AppColors.teal.withValues(alpha: 0.1),
+                border: Border.all(color: AppColors.teal, width: 1.5),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Text(
+                widget.label,
+                style: GoogleFonts.openSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
           ),
         ),
       ),

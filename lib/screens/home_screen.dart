@@ -11,6 +11,7 @@ import '../widgets/add_timer_sheet.dart';
 import '../widgets/streaks_sheet.dart';
 import '../widgets/session_complete_sheet.dart';
 import '../widgets/weekly_wellness_sheet.dart';
+import '../widgets/animated_press.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -226,10 +227,8 @@ class _Header extends StatelessWidget {
               ),
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(context, '/account');
-            },
+          AnimatedPress(
+            onTap: () => Navigator.pushNamed(context, '/account'),
             child: Container(
               width: 42,
               height: 42,

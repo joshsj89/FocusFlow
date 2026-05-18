@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
+import 'animated_press.dart';
 
 enum _Mood { great, alright, notWell, bad }
 
@@ -159,8 +160,10 @@ class _MoodOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onTap,
+      pressedScale: 0.95,
+      hoveredScale: 1.02,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 5),
         child: Row(
@@ -189,29 +192,51 @@ class _MoodOption extends StatelessWidget {
   }
 }
 
-class _DoneButton extends StatelessWidget {
+class _DoneButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const _DoneButton({required this.onPressed});
 
   @override
+  State<_DoneButton> createState() => _DoneButtonState();
+}
+
+class _DoneButtonState extends State<_DoneButton> {
+  bool _pressed = false;
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.teal, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(vertical: 11),
-          backgroundColor: AppColors.timerInnerFill,
-        ),
-        child: Text(
-          'Done',
-          style: GoogleFonts.openSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.darkNavy,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.95 : (_hovered ? 1.03 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: widget.onPressed,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.teal, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                backgroundColor: AppColors.timerInnerFill,
+              ),
+              child: Text(
+                'Done',
+                style: GoogleFonts.openSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkNavy,
+                ),
+              ),
+            ),
           ),
         ),
       ),

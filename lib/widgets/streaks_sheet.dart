@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
+import 'animated_press.dart';
 
 class StreaksSheet extends StatelessWidget {
   const StreaksSheet({super.key});
@@ -77,7 +78,7 @@ class _TitleRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        GestureDetector(
+        AnimatedPress(
           onTap: onClose,
           child: Container(
             width: 30,
@@ -191,29 +192,51 @@ class _DayCell extends StatelessWidget {
   }
 }
 
-class _CloseButton extends StatelessWidget {
+class _CloseButton extends StatefulWidget {
   final VoidCallback onPressed;
 
   const _CloseButton({required this.onPressed});
 
   @override
+  State<_CloseButton> createState() => _CloseButtonState();
+}
+
+class _CloseButtonState extends State<_CloseButton> {
+  bool _pressed = false;
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton(
-        onPressed: onPressed,
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.teal, width: 1.5),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          backgroundColor: AppColors.timerInnerFill,
-        ),
-        child: Text(
-          'Close',
-          style: GoogleFonts.openSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AppColors.darkNavy,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Listener(
+        onPointerDown: (_) => setState(() => _pressed = true),
+        onPointerUp: (_) => setState(() => _pressed = false),
+        onPointerCancel: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+          scale: _pressed ? 0.95 : (_hovered ? 1.03 : 1.0),
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              onPressed: widget.onPressed,
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: AppColors.teal, width: 1.5),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: AppColors.timerInnerFill,
+              ),
+              child: Text(
+                'Close',
+                style: GoogleFonts.openSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkNavy,
+                ),
+              ),
+            ),
           ),
         ),
       ),

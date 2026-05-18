@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'animated_press.dart';
 
 class PlaybackControls extends StatelessWidget {
   final bool isPlaying;
@@ -55,7 +56,7 @@ class _OutlinedControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onTap,
       child: Container(
         width: size,
@@ -83,7 +84,7 @@ class _FilledControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onTap,
       child: Container(
         width: size,

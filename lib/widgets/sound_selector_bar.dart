@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
+import 'animated_press.dart';
 
 class SoundSelectorBar extends StatelessWidget {
   final String soundName;
@@ -14,8 +15,9 @@ class SoundSelectorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return AnimatedPress(
       onTap: onTap,
+      pressedScale: 0.97,
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
