@@ -101,24 +101,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => showDialog<void>(
+      bottomNavigationBar: _AddTimerBar(
+        onAdd: () => showDialog<void>(
           context: context,
           builder: (_) => const AddTimerSheet(),
         ),
-        backgroundColor: AppColors.teal,
-        foregroundColor: Colors.white,
-        elevation: 4,
-        child: const Icon(Icons.add, size: 28),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        color: AppColors.teal,
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6,
-        height: 60,
-        padding: EdgeInsets.zero,
-        child: const SizedBox.shrink(),
       ),
       body: Column(
         children: [
@@ -184,7 +171,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     durationMins: 20,
                     sessions: 3,
                   ),
-                  const SizedBox(height: 90),
+                  const SizedBox(height: 16),
                 ],
               ),
             ),
@@ -236,6 +223,57 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _AddTimerBar extends StatelessWidget {
+  final VoidCallback onAdd;
+
+  const _AddTimerBar({required this.onAdd});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 12,
+        bottom: MediaQuery.of(context).padding.bottom + 12,
+      ),
+      child: AnimatedPress(
+        onTap: onAdd,
+        child: Container(
+          height: 52,
+          decoration: BoxDecoration(
+            color: AppColors.teal,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.teal.withAlpha(80),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.add_rounded, color: Colors.white, size: 22),
+              const SizedBox(width: 8),
+              Text(
+                'Add Timer',
+                style: GoogleFonts.openSans(
+                  color: Colors.white,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
