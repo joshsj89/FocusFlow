@@ -148,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: TimerDisplay(
                       timeLabel: _timeLabel,
                       progress: _progress,
+                      isPlaying: _isPlaying,
                     ),
                   ),
                   const SizedBox(height: 18),
