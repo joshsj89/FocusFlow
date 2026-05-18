@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "387181885801",
+    "project_id": "scu-course-planner-5df63",
+    "storage_bucket": "scu-course-planner-5df63.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:387181885801:android:a427dfe50e89eea57865f8",
+        "android_client_info": {
+          "package_name": "com.example.focusflow"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "387181885801-fac1098v3f4jjil98ea7q5lsb0js6ln9.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAgoiPjGDrZ9iTdPelucVRkFbl8myHSp0M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "387181885801-fac1098v3f4jjil98ea7q5lsb0js6ln9.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
