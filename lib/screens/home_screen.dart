@@ -77,11 +77,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _pause() {
-    _countdownTimer?.cancel();
-    setState(() => _isPlaying = false);
-  }
-
   void _rewind() {
     _countdownTimer?.cancel();
     setState(() {
@@ -168,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     isPlaying: _isPlaying,
                     onPlayPause: _togglePlayPause,
                     onRewind: _rewind,
-                    onPause: _pause,
+                    onCancel: _rewind,
                   ),
                   const SizedBox(height: 22),
                   const SoundSelectorBar(soundName: 'Ambient Rain'),

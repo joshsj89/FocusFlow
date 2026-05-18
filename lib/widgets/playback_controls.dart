@@ -6,14 +6,14 @@ class PlaybackControls extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback onPlayPause;
   final VoidCallback onRewind;
-  final VoidCallback onPause;
+  final VoidCallback onCancel;
 
   const PlaybackControls({
     super.key,
     required this.isPlaying,
     required this.onPlayPause,
     required this.onRewind,
-    required this.onPause,
+    required this.onCancel,
   });
 
   @override
@@ -28,15 +28,15 @@ class PlaybackControls extends StatelessWidget {
         ),
         const SizedBox(width: 20),
         _FilledControlButton(
-          icon: Icons.play_arrow,
+          isPlaying: isPlaying,
           size: 58,
           onTap: onPlayPause,
         ),
         const SizedBox(width: 20),
         _OutlinedControlButton(
-          icon: Icons.pause,
+          icon: Icons.close,
           size: 48,
-          onTap: onPause,
+          onTap: onCancel,
         ),
       ],
     );
@@ -72,12 +72,12 @@ class _OutlinedControlButton extends StatelessWidget {
 }
 
 class _FilledControlButton extends StatelessWidget {
-  final IconData icon;
+  final bool isPlaying;
   final double size;
   final VoidCallback onTap;
 
   const _FilledControlButton({
-    required this.icon,
+    required this.isPlaying,
     required this.size,
     required this.onTap,
   });
@@ -93,7 +93,16 @@ class _FilledControlButton extends StatelessWidget {
           shape: BoxShape.circle,
           color: AppColors.purple,
         ),
-        child: Icon(icon, color: Colors.white, size: size * 0.48),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
+          child: Icon(
+            isPlaying ? Icons.pause : Icons.play_arrow,
+            key: ValueKey(isPlaying),
+            color: Colors.white,
+            size: size * 0.48,
+          ),
+        ),
       ),
     );
   }
