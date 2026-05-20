@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart' show DocumentSnapshot;
-
 class TimerModel {
   final String id;
   final String name;
@@ -15,16 +13,23 @@ class TimerModel {
     required this.createdAt,
   });
 
-  factory TimerModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data()!;
+  factory TimerModel.fromMap(Map<String, dynamic> map) {
     return TimerModel(
-      id: doc.id,
-      name: data['name'] as String,
-      durationMins: data['durationMins'] as int,
-      sessions: data['sessions'] as int,
-      createdAt: DateTime.parse(data['createdAt'] as String).toLocal(),
+      id: map['id'] as String,
+      name: map['name'] as String,
+      durationMins: map['durationMins'] as int,
+      sessions: map['sessions'] as int,
+      createdAt: DateTime.parse(map['createdAt'] as String).toLocal(),
     );
   }
+
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'durationMins': durationMins,
+        'sessions': sessions,
+        'createdAt': createdAt.toUtc().toIso8601String(),
+      };
 
   TimerModel copyWith({String? name, int? durationMins, int? sessions}) {
     return TimerModel(
