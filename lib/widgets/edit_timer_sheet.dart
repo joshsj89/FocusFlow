@@ -1,21 +1,42 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:focusflow/widgets/timer_sheet_widgets.dart';
-
+import '../models/timer_model.dart';
+import '../services/timer_service.dart';
+import 'timer_sheet_widgets.dart';
 
 class EditTimerSheet extends StatefulWidget {
-  const EditTimerSheet({super.key});
+  final TimerModel timer;
+
+  const EditTimerSheet({super.key, required this.timer});
 
   @override
   State<EditTimerSheet> createState() => _EditTimerSheetState();
 }
 
 class _EditTimerSheetState extends State<EditTimerSheet> {
-  final _nameController = TextEditingController();
-  final _customDurationController = TextEditingController();
-  int? _selectedPreset = 25;
-  int _sessions = 2;
+  late final TextEditingController _nameController;
+  late final TextEditingController _customDurationController;
+  late int? _selectedPreset;
+  late int _sessions;
+  bool _saving = false;
+  String? _errorMessage;
 
   static const _presets = [15, 25, 45];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.timer.name);
+    _sessions = widget.timer.sessions;
+    if (_presets.contains(widget.timer.durationMins)) {
+      _selectedPreset = widget.timer.durationMins;
+      _customDurationController = TextEditingController();
+    } else {
+      _selectedPreset = null;
+      _customDurationController =
+          TextEditingController(text: widget.timer.durationMins.toString());
+    }
+  }
 
   @override
   void dispose() {
@@ -32,9 +53,7 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
   }
 
   void _onCustomDurationChanged(String value) {
-    setState(() {
-      _selectedPreset = null;
-    });
+    setState(() => _selectedPreset = null);
   }
 
   int get _effectiveDuration {
@@ -42,11 +61,69 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
     return int.tryParse(_customDurationController.text) ?? 0;
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     final name = _nameController.text.trim();
     final duration = _effectiveDuration;
     if (name.isEmpty || duration <= 0) return;
-    Navigator.of(context).pop({'name': name, 'duration': duration, 'sessions': _sessions});
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+    try {
+      await TimerService.updateTimer(
+        uid,
+        widget.timer.copyWith(
+            name: name, durationMins: duration, sessions: _sessions),
+      );
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _delete() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Delete timer?'),
+        content: Text('"${widget.timer.name}" will be permanently deleted.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+    try {
+      await TimerService.deleteTimer(uid, widget.timer.id);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -61,7 +138,10 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleRow(title: 'Edit Timer',onClose: () => Navigator.of(context).pop()),
+            TitleRow(
+              title: 'Edit Timer',
+              onClose: () => Navigator.of(context).pop(),
+            ),
             const SizedBox(height: 20),
             SectionLabel(text: 'Timer name'),
             const SizedBox(height: 8),
@@ -81,11 +161,29 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
             const SizedBox(height: 10),
             SessionsCounter(
               value: _sessions,
-              onDecrement: _sessions > 1 ? () => setState(() => _sessions--) : null,
+              onDecrement:
+                  _sessions > 1 ? () => setState(() => _sessions--) : null,
               onIncrement: () => setState(() => _sessions++),
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 24),
-            ConfirmButton(onPressed: _confirm),
+            ConfirmButton(onPressed: _saving ? null : _confirm),
+            const SizedBox(height: 10),
+            Center(
+              child: TextButton(
+                onPressed: _saving ? null : _delete,
+                child: Text(
+                  'Delete timer',
+                  style: TextStyle(color: Colors.red.shade400, fontSize: 13),
+                ),
+              ),
+            ),
           ],
         ),
       ),

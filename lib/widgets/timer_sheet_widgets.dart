@@ -280,7 +280,7 @@ class CounterButton extends StatelessWidget {
 }
 
 class ConfirmButton extends StatefulWidget {
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const ConfirmButton({super.key, required this.onPressed});
 

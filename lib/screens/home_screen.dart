@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/timer_model.dart';
+import '../services/timer_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/session_progress.dart';
@@ -27,6 +29,14 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isPlaying = false;
   int _secondsRemaining = _totalSeconds;
   Timer? _countdownTimer;
+  late final Stream<List<TimerModel>> _timerStream;
+
+  @override
+  void initState() {
+    super.initState();
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+    _timerStream = TimerService.watchTimers(uid);
+  }
 
   @override
   void dispose() {
@@ -159,21 +169,30 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 22),
                   const SoundSelectorBar(soundName: 'Ambient Rain'),
                   const SizedBox(height: 16),
-                  const TimerCard(
-                    title: 'Timer 1',
-                    durationMins: 1,
-                    sessions: 7,
-                    isActive: true,
-                  ),
-                  const TimerCard(
-                    title: 'Other Timers',
-                    durationMins: 20,
-                    sessions: 3,
-                  ),
-                  const TimerCard(
-                    title: 'Other Timers',
-                    durationMins: 20,
-                    sessions: 3,
+                  StreamBuilder<List<TimerModel>>(
+                    stream: _timerStream,
+                    builder: (context, snapshot) {
+                      final timers = snapshot.data ?? [];
+                      if (timers.isEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 24),
+                          child: Center(
+                            child: Text(
+                              'No timers yet. Tap + to add one.',
+                              style: TextStyle(
+                                color: AppColors.subtitleText,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: timers
+                            .map((t) => TimerCard(timer: t))
+                            .toList(),
+                      );
+                    },
                   ),
                   const SizedBox(height: 16),
                 ],

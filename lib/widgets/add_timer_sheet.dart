@@ -1,6 +1,7 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:focusflow/widgets/timer_sheet_widgets.dart';
-
+import '../services/timer_service.dart';
+import 'timer_sheet_widgets.dart';
 
 class AddTimerSheet extends StatefulWidget {
   const AddTimerSheet({super.key});
@@ -12,8 +13,10 @@ class AddTimerSheet extends StatefulWidget {
 class _AddTimerSheetState extends State<AddTimerSheet> {
   final _nameController = TextEditingController();
   final _customDurationController = TextEditingController();
-  int? _selectedPreset = 1;
+  int? _selectedPreset = 25;
   int _sessions = 2;
+  bool _saving = false;
+  String? _errorMessage;
 
   static const _presets = [15, 25, 45];
 
@@ -32,9 +35,7 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
   }
 
   void _onCustomDurationChanged(String value) {
-    setState(() {
-      _selectedPreset = null;
-    });
+    setState(() => _selectedPreset = null);
   }
 
   int get _effectiveDuration {
@@ -42,11 +43,27 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
     return int.tryParse(_customDurationController.text) ?? 0;
   }
 
-  void _confirm() {
+  Future<void> _confirm() async {
     final name = _nameController.text.trim();
     final duration = _effectiveDuration;
     if (name.isEmpty || duration <= 0) return;
-    Navigator.of(context).pop({'name': name, 'duration': duration, 'sessions': _sessions});
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    setState(() {
+      _saving = true;
+      _errorMessage = null;
+    });
+    try {
+      await TimerService.addTimer(uid,
+          name: name, durationMins: duration, sessions: _sessions);
+      if (mounted) Navigator.of(context).pop();
+    } catch (e) {
+      if (mounted) setState(() => _errorMessage = e.toString());
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   @override
@@ -61,7 +78,9 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TitleRow(title: 'Add Timer',onClose: () => Navigator.of(context).pop()),
+            TitleRow(
+                title: 'Add Timer',
+                onClose: () => Navigator.of(context).pop()),
             const SizedBox(height: 20),
             SectionLabel(text: 'Timer name'),
             const SizedBox(height: 8),
@@ -81,11 +100,19 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
             const SizedBox(height: 10),
             SessionsCounter(
               value: _sessions,
-              onDecrement: _sessions > 1 ? () => setState(() => _sessions--) : null,
+              onDecrement:
+                  _sessions > 1 ? () => setState(() => _sessions--) : null,
               onIncrement: () => setState(() => _sessions++),
             ),
+            if (_errorMessage != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red, fontSize: 12),
+              ),
+            ],
             const SizedBox(height: 24),
-            ConfirmButton(onPressed: _confirm),
+            ConfirmButton(onPressed: _saving ? null : _confirm),
           ],
         ),
       ),

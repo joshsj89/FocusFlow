@@ -1,30 +1,28 @@
 import 'package:flutter/material.dart';
-import 'package:focusflow/widgets/edit_timer_sheet.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/timer_model.dart';
 import '../theme/app_colors.dart';
 import 'animated_press.dart';
+import 'edit_timer_sheet.dart';
 
 class TimerCard extends StatelessWidget {
-  final String title;
-  final int durationMins;
-  final int sessions;
+  final TimerModel timer;
   final bool isActive;
-  // final VoidCallback? onTap;
 
   const TimerCard({
     super.key,
-    required this.title,
-    required this.durationMins,
-    required this.sessions,
+    required this.timer,
     this.isActive = false,
-    // this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedPress(
       pressedScale: 0.97,
-      onTap: () => showDialog(context: context, builder: (_) => const EditTimerSheet()),
+      onTap: () => showDialog(
+        context: context,
+        builder: (_) => EditTimerSheet(timer: timer),
+      ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -56,7 +54,7 @@ class TimerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    timer.name,
                     style: GoogleFonts.openSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -65,7 +63,7 @@ class TimerCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '$durationMins mins • $sessions sessions',
+                    '${timer.durationMins} mins • ${timer.sessions} sessions',
                     style: GoogleFonts.openSans(
                       fontSize: 12,
                       color: AppColors.subtitleText,
