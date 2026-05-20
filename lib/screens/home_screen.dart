@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
@@ -109,7 +110,10 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          _Header(greeting: _greeting, userName: 'Srinivasan'),
+          _Header(
+            greeting: _greeting,
+            userName: FirebaseAuth.instance.currentUser?.displayName ?? 'there',
+          ),
           Expanded(
             child: SingleChildScrollView(
               child: Column(

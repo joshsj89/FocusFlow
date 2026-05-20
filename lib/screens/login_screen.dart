@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _nameController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   bool _isSignUp = false;
@@ -25,6 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -36,10 +38,14 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       if (_isSignUp) {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailController.text.trim(),
           password: _passwordController.text,
         );
+        final name = _nameController.text.trim();
+        if (name.isNotEmpty) {
+          await credential.user?.updateDisplayName(name);
+        }
       } else {
         await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailController.text.trim(),
@@ -104,6 +110,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 36),
+                if (_isSignUp) ...[
+                  _Field(
+                    controller: _nameController,
+                    label: 'Display Name',
+                    keyboardType: TextInputType.name,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return 'Enter a display name';
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 _Field(
                   controller: _emailController,
                   label: 'Email',
@@ -210,6 +228,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () => setState(() {
                         _isSignUp = !_isSignUp;
                         _errorMessage = null;
+                        _nameController.clear();
                       }),
                       child: Text(
                         _isSignUp ? 'Sign In' : 'Sign Up',
