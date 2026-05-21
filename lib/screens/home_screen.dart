@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/timer_model.dart';
 import '../services/timer_service.dart';
@@ -234,7 +235,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           AnimatedPress(
-            onTap: () => Navigator.pushNamed(context, '/account'),
+            onTap: () => context.go('/account'),
             child: Container(
               width: 42,
               height: 42,
