@@ -328,7 +328,7 @@ class _Header extends StatelessWidget {
             ),
           ),
           AnimatedPress(
-            onTap: () => context.go('/account'),
+            onTap: () => context.push('/account'),
             child: Container(
               width: 42,
               height: 42,
