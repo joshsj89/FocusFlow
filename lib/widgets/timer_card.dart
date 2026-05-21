@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/timer_model.dart';
+import '../models/timer_profile.dart';
 import '../theme/app_colors.dart';
 import 'animated_press.dart';
 import 'edit_timer_sheet.dart';
 
 class TimerCard extends StatelessWidget {
-  final TimerModel timer;
+  final TimerProfile timer;
   final bool isActive;
 
   const TimerCard({
@@ -63,7 +63,7 @@ class TimerCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${timer.durationMins} mins • ${timer.sessions} sessions',
+                    '${timer.focusDuration ~/ 60} mins • ${timer.sessionsPerSit} sessions',
                     style: GoogleFonts.openSans(
                       fontSize: 12,
                       color: AppColors.subtitleText,

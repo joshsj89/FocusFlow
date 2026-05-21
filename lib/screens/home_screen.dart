@@ -3,7 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../models/timer_model.dart';
+import '../models/timer_profile.dart';
 import '../services/timer_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/timer_display.dart';
@@ -30,7 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isPlaying = false;
   int _secondsRemaining = _totalSeconds;
   Timer? _countdownTimer;
-  late final Stream<List<TimerModel>> _timerStream;
+  late final Stream<List<TimerProfile>> _timerStream;
 
   @override
   void initState() {
@@ -170,7 +170,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   const SizedBox(height: 22),
                   const SoundSelectorBar(soundName: 'Ambient Rain'),
                   const SizedBox(height: 16),
-                  StreamBuilder<List<TimerModel>>(
+                  StreamBuilder<List<TimerProfile>>(
                     stream: _timerStream,
                     builder: (context, snapshot) {
                       final timers = snapshot.data ?? [];

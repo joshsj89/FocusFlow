@@ -1,11 +1,11 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../models/timer_model.dart';
+import '../models/timer_profile.dart';
 import '../services/timer_service.dart';
 import 'timer_sheet_widgets.dart';
 
 class EditTimerSheet extends StatefulWidget {
-  final TimerModel timer;
+  final TimerProfile timer;
 
   const EditTimerSheet({super.key, required this.timer});
 
@@ -27,14 +27,15 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.timer.name);
-    _sessions = widget.timer.sessions;
-    if (_presets.contains(widget.timer.durationMins)) {
-      _selectedPreset = widget.timer.durationMins;
+    _sessions = widget.timer.sessionsPerSit;
+    final durationMins = widget.timer.focusDuration ~/ 60;
+    if (_presets.contains(durationMins)) {
+      _selectedPreset = durationMins;
       _customDurationController = TextEditingController();
     } else {
       _selectedPreset = null;
       _customDurationController =
-          TextEditingController(text: widget.timer.durationMins.toString());
+          TextEditingController(text: durationMins.toString());
     }
   }
 
@@ -77,7 +78,9 @@ class _EditTimerSheetState extends State<EditTimerSheet> {
       await TimerService.updateTimer(
         uid,
         widget.timer.copyWith(
-            name: name, durationMins: duration, sessions: _sessions),
+            name: name,
+            focusDuration: duration * 60,
+            sessionsPerSit: _sessions),
       );
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
