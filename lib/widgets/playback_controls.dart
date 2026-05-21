@@ -4,16 +4,16 @@ import 'animated_press.dart';
 
 class PlaybackControls extends StatelessWidget {
   final bool isPlaying;
-  final VoidCallback onPlayPause;
-  final VoidCallback onRewind;
-  final VoidCallback onCancel;
+  final VoidCallback? onPlayPause;
+  final VoidCallback? onRewind;
+  final VoidCallback? onCancel;
 
   const PlaybackControls({
     super.key,
     required this.isPlaying,
     required this.onPlayPause,
-    required this.onRewind,
-    required this.onCancel,
+    this.onRewind,
+    this.onCancel,
   });
 
   @override
@@ -46,7 +46,7 @@ class PlaybackControls extends StatelessWidget {
 class _OutlinedControlButton extends StatelessWidget {
   final IconData icon;
   final double size;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _OutlinedControlButton({
     required this.icon,
@@ -56,16 +56,20 @@ class _OutlinedControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedPress(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.purple, width: 1.5),
+    final enabled = onTap != null;
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.35,
+      child: AnimatedPress(
+        onTap: onTap ?? () {},
+        child: Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.purple, width: 1.5),
+          ),
+          child: Icon(icon, color: AppColors.purple, size: size * 0.44),
         ),
-        child: Icon(icon, color: AppColors.purple, size: size * 0.44),
       ),
     );
   }
@@ -74,7 +78,7 @@ class _OutlinedControlButton extends StatelessWidget {
 class _FilledControlButton extends StatelessWidget {
   final bool isPlaying;
   final double size;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _FilledControlButton({
     required this.isPlaying,
@@ -84,23 +88,28 @@ class _FilledControlButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedPress(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: const BoxDecoration(
-          shape: BoxShape.circle,
-          color: AppColors.purple,
-        ),
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 200),
-          transitionBuilder: (child, animation) => ScaleTransition(scale: animation, child: child),
-          child: Icon(
-            isPlaying ? Icons.pause : Icons.play_arrow,
-            key: ValueKey(isPlaying),
-            color: Colors.white,
-            size: size * 0.48,
+    final enabled = onTap != null;
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.35,
+      child: AnimatedPress(
+        onTap: onTap ?? () {},
+        child: Container(
+          width: size,
+          height: size,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.purple,
+          ),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: Icon(
+              isPlaying ? Icons.pause : Icons.play_arrow,
+              key: ValueKey(isPlaying),
+              color: Colors.white,
+              size: size * 0.48,
+            ),
           ),
         ),
       ),

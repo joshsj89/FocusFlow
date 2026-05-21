@@ -8,21 +8,24 @@ import 'edit_timer_sheet.dart';
 class TimerCard extends StatelessWidget {
   final TimerProfile timer;
   final bool isActive;
+  final VoidCallback? onTap;
 
   const TimerCard({
     super.key,
     required this.timer,
     this.isActive = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return AnimatedPress(
       pressedScale: 0.97,
-      onTap: () => showDialog(
-        context: context,
-        builder: (_) => EditTimerSheet(timer: timer),
-      ),
+      onTap: onTap ??
+          () => showDialog(
+                context: context,
+                builder: (_) => EditTimerSheet(timer: timer),
+              ),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

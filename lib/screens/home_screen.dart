@@ -1,49 +1,44 @@
-import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../cubits/active_timer_cubit.dart';
+import '../cubits/session_cubit.dart';
+import '../cubits/timer_cubit.dart';
+import '../cubits/wellness_cubit.dart';
 import '../models/timer_profile.dart';
-import '../services/timer_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/timer_display.dart';
-import '../widgets/session_progress.dart';
-import '../widgets/playback_controls.dart';
-import '../widgets/sound_selector_bar.dart';
-import '../widgets/timer_card.dart';
 import '../widgets/add_timer_sheet.dart';
-import '../widgets/streaks_sheet.dart';
-import '../widgets/session_complete_sheet.dart';
-import '../widgets/weekly_wellness_sheet.dart';
 import '../widgets/animated_press.dart';
+import '../widgets/playback_controls.dart';
+import '../widgets/session_complete_sheet.dart';
+import '../widgets/session_progress.dart';
+import '../widgets/sound_selector_bar.dart';
+import '../widgets/streaks_sheet.dart';
+import '../widgets/timer_card.dart';
+import '../widgets/timer_display.dart';
+import '../widgets/weekly_wellness_sheet.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  Widget build(BuildContext context) {
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => ActiveTimerCubit()..loadProfiles()),
+        BlocProvider(create: (_) => TimerCubit()),
+        BlocProvider(create: (_) => SessionCubit()),
+        BlocProvider(create: (_) => WellnessCubit()),
+      ],
+      child: const _HomeView(),
+    );
+  }
 }
 
-class _HomeScreenState extends State<HomeScreen> {
-  static const _totalSeconds = 1 * 60;
-
-  bool _isPlaying = false;
-  int _secondsRemaining = _totalSeconds;
-  Timer? _countdownTimer;
-  late final Stream<List<TimerProfile>> _timerStream;
-
-  @override
-  void initState() {
-    super.initState();
-    final uid = FirebaseAuth.instance.currentUser!.uid;
-    _timerStream = TimerService.watchTimers(uid);
-  }
-
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
+class _HomeView extends StatelessWidget {
+  const _HomeView();
 
   String get _greeting {
     final hour = DateTime.now().hour;
@@ -52,159 +47,257 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Good Evening';
   }
 
-  String get _timeLabel {
-    final m = _secondsRemaining ~/ 60;
-    final s = _secondsRemaining % 60;
+  @override
+  Widget build(BuildContext context) {
+    return MultiBlocListener(
+      listeners: [
+        // When the active profile changes, reset the timer to the new profile
+        BlocListener<ActiveTimerCubit, ActiveTimerState>(
+          listenWhen: (prev, next) => prev.activeProfile != next.activeProfile,
+          listener: (context, state) {
+            if (state.activeProfile != null) {
+              context.read<TimerCubit>().loadProfile(state.activeProfile!);
+            }
+          },
+        ),
+        // When a session completes, show the mood check-in modal
+        BlocListener<TimerCubit, TimerState>(
+          listenWhen: (_, next) => next is TimerCompleted,
+          listener: (context, state) {
+            final timerCubit = context.read<TimerCubit>();
+            showDialog<void>(
+              context: context,
+              barrierDismissible: false,
+              builder: (_) => SessionCompleteSheet(
+                focusMins: (context
+                            .read<ActiveTimerCubit>()
+                            .state
+                            .activeProfile
+                            ?.focusDuration ??
+                        0) ~/
+                    60,
+                sessionsCompleted:
+                    (state as TimerCompleted).completedSessions,
+                totalSessions: context
+                        .read<ActiveTimerCubit>()
+                        .state
+                        .activeProfile
+                        ?.sessionsPerSit ??
+                    4,
+              ),
+            ).then((_) => timerCubit.startBreak());
+          },
+        ),
+      ],
+      child: BlocBuilder<TimerCubit, TimerState>(
+        builder: (context, timerState) {
+          return BlocBuilder<ActiveTimerCubit, ActiveTimerState>(
+            builder: (context, activeState) {
+              final profile = activeState.activeProfile;
+              final isPlaying = timerState is TimerRunning;
+              final canPlay = profile != null;
+
+              return Scaffold(
+                backgroundColor: Colors.white,
+                bottomNavigationBar: _AddTimerBar(
+                  onAdd: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => const AddTimerSheet(),
+                  ),
+                ),
+                body: Column(
+                  children: [
+                    _Header(
+                      greeting: _greeting,
+                      userName:
+                          FirebaseAuth.instance.currentUser?.displayName ??
+                              'there',
+                    ),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _TopActionIcons(
+                              onAchievements: () => showDialog<void>(
+                                context: context,
+                                builder: (_) => const StreaksSheet(),
+                              ),
+                              onMood: () => showDialog<void>(
+                                context: context,
+                                builder: (_) => const WeeklyWellnessSheet(),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Center(
+                              child: TimerDisplay(
+                                timeLabel: _timeLabel(timerState, profile),
+                                progress: _progress(timerState),
+                                isPlaying: isPlaying,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            SessionProgress(
+                              dots: _buildDots(timerState, profile),
+                              label: _sessionLabel(timerState, profile),
+                            ),
+                            const SizedBox(height: 22),
+                            PlaybackControls(
+                              isPlaying: isPlaying,
+                              onPlayPause: canPlay
+                                  ? () => isPlaying
+                                      ? context
+                                          .read<TimerCubit>()
+                                          .pauseTimer()
+                                      : context
+                                          .read<TimerCubit>()
+                                          .startTimer()
+                                  : null,
+                              onRewind: timerState is! TimerInitial
+                                  ? () =>
+                                      context.read<TimerCubit>().resetTimer()
+                                  : null,
+                              onCancel: timerState is! TimerInitial
+                                  ? () =>
+                                      context.read<TimerCubit>().resetTimer()
+                                  : null,
+                            ),
+                            const SizedBox(height: 22),
+                            SoundSelectorBar(
+                              soundName:
+                                  profile?.soundscapeId ?? 'Ambient Rain',
+                            ),
+                            const SizedBox(height: 16),
+                            _TimerList(
+                              profiles: activeState.allProfiles,
+                              activeId: profile?.id,
+                              isLoading: activeState.isLoading,
+                              errorMessage: activeState.errorMessage,
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  String _timeLabel(TimerState state, TimerProfile? profile) {
+    final seconds = switch (state) {
+      TimerRunning s => s.remainingSeconds,
+      TimerPaused s => s.remainingSeconds,
+      TimerOnBreak s => s.remainingSeconds,
+      _ => profile?.focusDuration ?? 0,
+    };
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
-  double get _progress => _secondsRemaining / _totalSeconds;
+  double _progress(TimerState state) {
+    return switch (state) {
+      TimerRunning s =>
+        s.totalSeconds > 0 ? s.remainingSeconds / s.totalSeconds : 1.0,
+      TimerPaused s =>
+        s.totalSeconds > 0 ? s.remainingSeconds / s.totalSeconds : 1.0,
+      TimerOnBreak s =>
+        s.totalSeconds > 0 ? s.remainingSeconds / s.totalSeconds : 1.0,
+      _ => 1.0,
+    };
+  }
 
-  void _startCountdown() {
-    _countdownTimer?.cancel();
-    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_secondsRemaining <= 1) {
-        _countdownTimer?.cancel();
-        setState(() {
-          _secondsRemaining = 0;
-          _isPlaying = false;
-        });
-        _showSessionComplete();
-      } else {
-        setState(() => _secondsRemaining--);
-      }
+  List<DotStatus> _buildDots(TimerState state, TimerProfile? profile) {
+    final total = profile?.sessionsPerSit ?? 4;
+    final completed = switch (state) {
+      TimerRunning s => s.completedSessions,
+      TimerCompleted s => s.completedSessions,
+      _ => 0,
+    };
+    return List.generate(total, (i) {
+      if (i < completed) return DotStatus.completed;
+      if (i == completed) return DotStatus.current;
+      return DotStatus.upcoming;
     });
   }
 
-  void _togglePlayPause() {
-    final willPlay = !_isPlaying;
-    if (willPlay && _secondsRemaining == 0) {
-      setState(() => _secondsRemaining = _totalSeconds);
-    }
-    setState(() => _isPlaying = willPlay);
-    if (willPlay) {
-      _startCountdown();
-    } else {
-      _countdownTimer?.cancel();
-    }
+  String _sessionLabel(TimerState state, TimerProfile? profile) {
+    final completed = switch (state) {
+      TimerRunning s => s.completedSessions,
+      TimerCompleted s => s.completedSessions,
+      _ => 0,
+    };
+    final total = profile?.sessionsPerSit ?? 4;
+    return '$completed/$total sessions complete';
   }
+}
 
-  void _rewind() {
-    _countdownTimer?.cancel();
-    setState(() {
-      _isPlaying = false;
-      _secondsRemaining = _totalSeconds;
-    });
-  }
+// ── Timer list ────────────────────────────────────────────────────────────────
 
-  void _showSessionComplete() {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => SessionCompleteSheet(
-        focusMins: _totalSeconds ~/ 60,
-        sessionsCompleted: 4,
-        totalSessions: 4,
-      ),
-    );
-  }
+class _TimerList extends StatelessWidget {
+  final List<TimerProfile> profiles;
+  final String? activeId;
+  final bool isLoading;
+  final String? errorMessage;
+
+  const _TimerList({
+    required this.profiles,
+    required this.activeId,
+    required this.isLoading,
+    required this.errorMessage,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      bottomNavigationBar: _AddTimerBar(
-        onAdd: () => showDialog<void>(
-          context: context,
-          builder: (_) => const AddTimerSheet(),
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 24),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (errorMessage != null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            errorMessage!,
+            style: const TextStyle(color: AppColors.subtitleText, fontSize: 13),
+          ),
         ),
-      ),
-      body: Column(
-        children: [
-          _Header(
-            greeting: _greeting,
-            userName: FirebaseAuth.instance.currentUser?.displayName ?? 'there',
+      );
+    }
+    if (profiles.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 24),
+        child: Center(
+          child: Text(
+            'No timers yet. Tap + to add one.',
+            style: const TextStyle(
+                color: AppColors.subtitleText, fontSize: 13),
           ),
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _TopActionIcons(
-                    onAchievements: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => const StreaksSheet(),
-                    ),
-                    onMood: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => const WeeklyWellnessSheet(),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Center(
-                    child: TimerDisplay(
-                      timeLabel: _timeLabel,
-                      progress: _progress,
-                      isPlaying: _isPlaying,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  const SessionProgress(
-                    dots: [
-                      DotStatus.completed,
-                      DotStatus.completed,
-                      DotStatus.current,
-                      DotStatus.upcoming,
-                      DotStatus.upcoming,
-                      DotStatus.skipped,
-                    ],
-                    label: '7 sessions complete',
-                  ),
-                  const SizedBox(height: 22),
-                  PlaybackControls(
-                    isPlaying: _isPlaying,
-                    onPlayPause: _togglePlayPause,
-                    onRewind: _rewind,
-                    onCancel: _rewind,
-                  ),
-                  const SizedBox(height: 22),
-                  const SoundSelectorBar(soundName: 'Ambient Rain'),
-                  const SizedBox(height: 16),
-                  StreamBuilder<List<TimerProfile>>(
-                    stream: _timerStream,
-                    builder: (context, snapshot) {
-                      final timers = snapshot.data ?? [];
-                      if (timers.isEmpty) {
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 24),
-                          child: Center(
-                            child: Text(
-                              'No timers yet. Tap + to add one.',
-                              style: TextStyle(
-                                color: AppColors.subtitleText,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        );
-                      }
-                      return Column(
-                        children: timers
-                            .map((t) => TimerCard(timer: t))
-                            .toList(),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+        ),
+      );
+    }
+    return Column(
+      children: profiles
+          .map((t) => TimerCard(
+                timer: t,
+                isActive: t.id == activeId,
+                onTap: () =>
+                    context.read<ActiveTimerCubit>().selectTimer(t.id),
+              ))
+          .toList(),
     );
   }
 }
+
+// ── Sub-widgets ───────────────────────────────────────────────────────────────
 
 class _Header extends StatelessWidget {
   final String greeting;
