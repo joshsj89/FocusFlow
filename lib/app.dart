@@ -5,6 +5,7 @@ import 'screens/account_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/splash_screen.dart';
+import 'screens/streaks_screen.dart';
 
 final router = GoRouter(
   initialLocation: '/',
@@ -40,6 +41,11 @@ final router = GoRouter(
       path: '/account',
       name: 'account',
       builder: (context, state) => const AccountScreen(),
+    ),
+    GoRoute(
+      path: '/streaks',
+      name: 'streaks',
+      builder: (context, state) => const StreaksScreen(),
     ),
   ],
 );
