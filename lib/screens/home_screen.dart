@@ -11,6 +11,7 @@ import '../widgets/playback_controls.dart';
 import '../widgets/sound_selector_bar.dart';
 import '../widgets/timer_card.dart';
 import '../widgets/add_timer_sheet.dart';
+import '../widgets/edit_timer_sheet.dart';
 import '../widgets/streaks_sheet.dart';
 import '../widgets/session_complete_sheet.dart';
 import '../widgets/weekly_wellness_sheet.dart';
@@ -24,16 +25,18 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  static const _totalSeconds = 1 * 60;
-
+  TimerModel? _activeTimer;
   bool _isPlaying = false;
-  int _secondsRemaining = _totalSeconds;
+  late int _secondsRemaining;
   Timer? _countdownTimer;
   late final Stream<List<TimerModel>> _timerStream;
+
+  int get _totalSeconds => (_activeTimer?.durationMins ?? 25) * 60;
 
   @override
   void initState() {
     super.initState();
+    _secondsRemaining = _totalSeconds;
     final uid = FirebaseAuth.instance.currentUser!.uid;
     _timerStream = TimerService.watchTimers(uid);
   }
@@ -72,6 +75,15 @@ class _HomeScreenState extends State<HomeScreen> {
       } else {
         setState(() => _secondsRemaining--);
       }
+    });
+  }
+
+  void _selectTimer(TimerModel timer) {
+    _countdownTimer?.cancel();
+    setState(() {
+      _activeTimer = timer;
+      _isPlaying = false;
+      _secondsRemaining = timer.durationMins * 60;
     });
   }
 
@@ -189,7 +201,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       }
                       return Column(
                         children: timers
-                            .map((t) => TimerCard(timer: t))
+                            .map((t) => TimerCard(
+                                  timer: t,
+                                  isActive: _activeTimer?.id == t.id,
+                                  onTap: () => _selectTimer(t),
+                                  onEdit: () => showDialog<void>(
+                                    context: context,
+                                    builder: (_) => EditTimerSheet(timer: t),
+                                  ),
+                                ))
                             .toList(),
                       );
                     },
