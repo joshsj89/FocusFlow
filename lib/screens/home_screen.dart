@@ -208,6 +208,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     stream: _timerStream,
                     builder: (context, snapshot) {
                       final timers = snapshot.data ?? [];
+                      if (_activeTimer == null && timers.isNotEmpty) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _activeTimer == null) {
+                            _selectTimer(timers.first);
+                          }
+                        });
+                      }
                       if (timers.isEmpty) {
                         return Padding(
                           padding: const EdgeInsets.symmetric(vertical: 24),

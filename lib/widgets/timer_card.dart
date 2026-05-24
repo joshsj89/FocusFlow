@@ -41,7 +41,8 @@ class TimerCard extends StatelessWidget {
               pressedScale: 0.97,
               hoveredScale: 1.01,
               onTap: onTap,
-              child: Padding(
+              child: Container(
+                color: Colors.transparent,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 child: Row(
                   children: [
