@@ -1,6 +1,9 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/timer_model.dart';
 import '../services/timer_service.dart';
@@ -30,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late int _secondsRemaining;
   int _currentSession = 1;
   Timer? _countdownTimer;
+  StreamSubscription<UserAccelerometerEvent>? _motionSub;
   late final Stream<List<TimerModel>> _timerStream;
 
   int get _totalSeconds => (_activeTimer?.durationMins ?? 25) * 60;
@@ -53,12 +57,37 @@ class _HomeScreenState extends State<HomeScreen> {
     _secondsRemaining = _totalSeconds;
     final uid = FirebaseAuth.instance.currentUser!.uid;
     _timerStream = TimerService.watchTimers(uid);
+    if (Platform.isAndroid) _startMotionDetection();
   }
 
   @override
   void dispose() {
+    _motionSub?.cancel();
     _countdownTimer?.cancel();
     super.dispose();
+  }
+
+// this'll pause the timer when the phone gets picked up
+  void _startMotionDetection() {
+    _motionSub = userAccelerometerEventStream(
+      samplingPeriod: const Duration(milliseconds: 100),
+    ).listen((event) {
+      if (!_isPlaying || !mounted) return;
+      final magnitude = sqrt(
+        event.x * event.x + event.y * event.y + event.z * event.z,
+      );
+      if (magnitude > 3.0) {
+        _togglePlayPause();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Timer paused, put the phone down!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }, onError: (_) {
+      // sensor unavailable on this device — no-op
+    });
   }
 
   String get _greeting {
