@@ -30,8 +30,6 @@ TextStyle _cancelStyle() =>
 TextStyle _actionStyle() =>
     GoogleFonts.openSans(color: AppColors.teal, fontWeight: FontWeight.w600);
 
-// ---------------------------------------------------------------------------
-
 class EditDisplayNameDialog extends StatefulWidget {
   final User? user;
   const EditDisplayNameDialog({super.key, required this.user});
@@ -81,8 +79,6 @@ class _EditDisplayNameDialogState extends State<EditDisplayNameDialog> {
   }
 }
 
-// ---------------------------------------------------------------------------
-
 class EditEmailDialog extends StatefulWidget {
   final User? user;
   const EditEmailDialog({super.key, required this.user});
@@ -114,7 +110,7 @@ class _EditEmailDialogState extends State<EditEmailDialog> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'A verification link will be sent to the new address before it takes effect.',
+            'A verification link will be sent to the new address before it takes effect. Be sure to check spam.',
             style: GoogleFonts.openSans(
                 fontSize: 12, color: AppColors.subtitleText),
           ),
@@ -170,7 +166,6 @@ class _EditEmailDialogState extends State<EditEmailDialog> {
   }
 }
 
-// ---------------------------------------------------------------------------
 
 class ChangePasswordDialog extends StatefulWidget {
   final User? user;
@@ -276,7 +271,6 @@ class _ChangePasswordDialogState extends State<ChangePasswordDialog> {
   }
 }
 
-// ---------------------------------------------------------------------------
 
 class SendFeedbackDialog extends StatefulWidget {
   final User? user;
@@ -363,8 +357,6 @@ class _SendFeedbackDialogState extends State<SendFeedbackDialog> {
     );
   }
 }
-
-// ---------------------------------------------------------------------------
 
 class PrivacyPolicyDialog extends StatelessWidget {
   const PrivacyPolicyDialog({super.key});
