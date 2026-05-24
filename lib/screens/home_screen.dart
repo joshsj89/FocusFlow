@@ -1,12 +1,13 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/timer_model.dart';
 import '../services/timer_service.dart';
+import '../services/streak_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/session_progress.dart';
@@ -57,7 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
     _secondsRemaining = _totalSeconds;
     final uid = FirebaseAuth.instance.currentUser!.uid;
     _timerStream = TimerService.watchTimers(uid);
-    if (Platform.isAndroid) _startMotionDetection();
+    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+      _startMotionDetection();
+    }
   }
 
   @override
@@ -134,6 +137,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _currentSession = 1;
         _secondsRemaining = _totalSeconds;
       });
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null) StreakService.recordToday(uid);
       _showSessionComplete(completed, total);
     }
   }
