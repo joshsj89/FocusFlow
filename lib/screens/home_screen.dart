@@ -8,6 +8,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../models/timer_model.dart';
 import '../services/timer_service.dart';
 import '../services/streak_service.dart';
+import '../services/wellness_service.dart';
+import '../models/wellness_model.dart';
 import '../theme/app_colors.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/session_progress.dart';
@@ -173,15 +175,26 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _showSessionComplete(int sessionsCompleted, int totalSessions) {
-    showDialog<void>(
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    final focusMins = (_activeTimer?.durationMins ?? 25) * sessionsCompleted;
+    showDialog<Mood>(
       context: context,
       barrierDismissible: false,
       builder: (_) => SessionCompleteSheet(
-        focusMins: (_activeTimer?.durationMins ?? 25) * sessionsCompleted,
+        focusMins: focusMins,
         sessionsCompleted: sessionsCompleted,
         totalSessions: totalSessions,
       ),
-    );
+    ).then((mood) {
+      if (uid != null) {
+        WellnessService.recordEntry(
+          uid,
+          mood: mood,
+          focusMins: focusMins,
+          sessionsCompleted: sessionsCompleted,
+        );
+      }
+    });
   }
 
   @override

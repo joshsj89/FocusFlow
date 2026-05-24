@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/wellness_model.dart';
 import '../theme/app_colors.dart';
 import 'animated_press.dart';
-
-enum _Mood { great, alright, notWell, bad }
 
 class SessionCompleteSheet extends StatefulWidget {
   final int focusMins;
@@ -22,7 +21,7 @@ class SessionCompleteSheet extends StatefulWidget {
 }
 
 class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
-  _Mood? _selectedMood;
+  Mood? _selectedMood;
 
   String get _focusTimeLabel {
     if (widget.focusMins < 60) return '${widget.focusMins} mins';
@@ -62,7 +61,7 @@ class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                ..._Mood.values.map(
+                ...Mood.values.map(
                   (mood) => _MoodOption(
                     mood: mood,
                     selected: _selectedMood == mood,
@@ -134,7 +133,7 @@ class _StatLine extends StatelessWidget {
 }
 
 class _MoodOption extends StatelessWidget {
-  final _Mood mood;
+  final Mood mood;
   final bool selected;
   final VoidCallback onTap;
 
@@ -143,20 +142,6 @@ class _MoodOption extends StatelessWidget {
     required this.selected,
     required this.onTap,
   });
-
-  static const _labels = {
-    _Mood.great: 'Great!',
-    _Mood.alright: 'Alright.',
-    _Mood.notWell: 'Not too well..',
-    _Mood.bad: 'Bad.',
-  };
-
-  static const _colors = {
-    _Mood.great: Color(0xFF4CAF50),
-    _Mood.alright: Color(0xFFFFCA28),
-    _Mood.notWell: Color(0xFFFF7043),
-    _Mood.bad: Color(0xFFE91E63),
-  };
 
   @override
   Widget build(BuildContext context) {
@@ -173,12 +158,12 @@ class _MoodOption extends StatelessWidget {
               height: 14,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _colors[mood],
+                color: mood.color,
               ),
             ),
             const SizedBox(width: 10),
             Text(
-              _labels[mood]!,
+              mood.label,
               style: GoogleFonts.openSans(
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
