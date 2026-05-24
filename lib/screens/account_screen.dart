@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:focusflow/theme/app_colors.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/account_dialogs.dart';
 import '../widgets/animated_press.dart';
 
 class AccountScreen extends StatelessWidget {
@@ -44,19 +45,28 @@ class AccountScreen extends StatelessWidget {
                             icon: Icons.person_outline,
                             title: 'Display Name',
                             subtitle: displayName,
-                            onTap: () => _editDisplayName(context, user),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => EditDisplayNameDialog(user: user),
+                            ),
                           ),
                           _SettingsTile(
                             icon: Icons.mail_outline,
                             title: 'Email',
                             subtitle: email,
-                            onTap: () => _editEmail(context, user),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => EditEmailDialog(user: user),
+                            ),
                           ),
                           _SettingsTile(
                             icon: Icons.vpn_key_outlined,
                             title: 'Password',
                             subtitle: 'Tap to change',
-                            onTap: () => _changePassword(context, user),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => ChangePasswordDialog(user: user),
+                            ),
                           ),
                         ],
                       ),
@@ -76,12 +86,18 @@ class AccountScreen extends StatelessWidget {
                           _SettingsTile(
                             icon: Icons.feedback_outlined,
                             title: 'Send feedback',
-                            onTap: () => _sendFeedback(context, user),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => SendFeedbackDialog(user: user),
+                            ),
                           ),
                           _SettingsTile(
                             icon: Icons.policy_outlined,
                             title: 'Privacy policy',
-                            onTap: () => _showPrivacyPolicy(context),
+                            onTap: () => showDialog<void>(
+                              context: context,
+                              builder: (_) => const PrivacyPolicyDialog(),
+                            ),
                           ),
                         ],
                       ),
@@ -137,233 +153,6 @@ class AccountScreen extends StatelessWidget {
     );
   }
 
-  void _editDisplayName(BuildContext context, User? user) {
-    final controller = TextEditingController(text: user?.displayName ?? '');
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.teal, width: 2),
-        ),
-        title: Text(
-          'Display Name',
-          style: GoogleFonts.openSans(fontWeight: FontWeight.w600),
-        ),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          textCapitalization: TextCapitalization.words,
-          decoration: _fieldDecoration('Your name'),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel',
-                style: GoogleFonts.openSans(color: AppColors.subtitleText)),
-          ),
-          TextButton(
-            onPressed: () async {
-              final name = controller.text.trim();
-              if (name.isNotEmpty) {
-                await user?.updateDisplayName(name);
-              }
-              if (ctx.mounted) Navigator.pop(ctx);
-            },
-            child: Text('Save',
-                style: GoogleFonts.openSans(
-                    color: AppColors.teal, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _editEmail(BuildContext context, User? user) {
-    final controller = TextEditingController(text: user?.email ?? '');
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        String? error;
-        bool saving = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppColors.teal, width: 2),
-            ),
-            title: Text('Update Email',
-                style: GoogleFonts.openSans(fontWeight: FontWeight.w600)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'A verification link will be sent to the new address before it takes effect.',
-                  style: GoogleFonts.openSans(
-                      fontSize: 12, color: AppColors.subtitleText),
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  autofocus: true,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: _fieldDecoration('New email address'),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel',
-                    style: GoogleFonts.openSans(color: AppColors.subtitleText)),
-              ),
-              TextButton(
-                onPressed: saving
-                    ? null
-                    : () async {
-                        final email = controller.text.trim();
-                        if (email.isEmpty) return;
-                        setState(() {
-                          saving = true;
-                          error = null;
-                        });
-                        try {
-                          await user?.verifyBeforeUpdateEmail(email);
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                              content: Text(
-                                  'Verification email sent to $email'),
-                            ));
-                          }
-                        } on FirebaseAuthException catch (e) {
-                          setState(() {
-                            saving = false;
-                            error = e.message ?? 'Something went wrong.';
-                          });
-                        }
-                      },
-                child: Text('Send verification',
-                    style: GoogleFonts.openSans(
-                        color: AppColors.teal,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _changePassword(BuildContext context, User? user) {
-    final currentCtrl = TextEditingController();
-    final newCtrl = TextEditingController();
-    final confirmCtrl = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        String? error;
-        bool saving = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppColors.teal, width: 2),
-            ),
-            title: Text('Change Password',
-                style: GoogleFonts.openSans(fontWeight: FontWeight.w600)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: currentCtrl,
-                  obscureText: true,
-                  decoration: _fieldDecoration('Current password'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: newCtrl,
-                  obscureText: true,
-                  decoration: _fieldDecoration('New password'),
-                ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: confirmCtrl,
-                  obscureText: true,
-                  decoration: _fieldDecoration('Confirm new password'),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel',
-                    style: GoogleFonts.openSans(color: AppColors.subtitleText)),
-              ),
-              TextButton(
-                onPressed: saving
-                    ? null
-                    : () async {
-                        final current = currentCtrl.text;
-                        final newPass = newCtrl.text;
-                        final confirm = confirmCtrl.text;
-                        if (newPass != confirm) {
-                          setState(() => error = 'Passwords do not match.');
-                          return;
-                        }
-                        if (newPass.length < 6) {
-                          setState(() => error =
-                              'Password must be at least 6 characters.');
-                          return;
-                        }
-                        setState(() {
-                          saving = true;
-                          error = null;
-                        });
-                        try {
-                          final credential = EmailAuthProvider.credential(
-                            email: user!.email!,
-                            password: current,
-                          );
-                          await user.reauthenticateWithCredential(credential);
-                          await user.updatePassword(newPass);
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Password updated.')),
-                            );
-                          }
-                        } on FirebaseAuthException {
-                          setState(() {
-                            saving = false;
-                            error = 'Current password is incorrect.';
-                          });
-                        }
-                      },
-                child: Text('Update',
-                    style: GoogleFonts.openSans(
-                        color: AppColors.teal,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   Future<void> _exportData(BuildContext context, User? user) async {
     if (user == null) return;
     final messenger = ScaffoldMessenger.of(context);
@@ -391,145 +180,6 @@ class AccountScreen extends StatelessWidget {
           const SnackBar(content: Text('Export failed. Please try again.')));
     }
   }
-
-  void _sendFeedback(BuildContext context, User? user) {
-    final controller = TextEditingController();
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        String? error;
-        bool saving = false;
-        return StatefulBuilder(
-          builder: (ctx, setState) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-              side: const BorderSide(color: AppColors.teal, width: 2),
-            ),
-            title: Text('Send Feedback',
-                style: GoogleFonts.openSans(fontWeight: FontWeight.w600)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: controller,
-                  maxLines: 4,
-                  autofocus: true,
-                  decoration: _fieldDecoration('Tell us what you think…'),
-                ),
-                if (error != null) ...[
-                  const SizedBox(height: 8),
-                  Text(error!,
-                      style: const TextStyle(color: Colors.red, fontSize: 12)),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel',
-                    style: GoogleFonts.openSans(color: AppColors.subtitleText)),
-              ),
-              TextButton(
-                onPressed: saving
-                    ? null
-                    : () async {
-                        final text = controller.text.trim();
-                        if (text.isEmpty) return;
-                        setState(() {
-                          saving = true;
-                          error = null;
-                        });
-                        try {
-                          await FirebaseFirestore.instance
-                              .collection('feedback')
-                              .add({
-                            'uid': user?.uid,
-                            'email': user?.email,
-                            'feedback': text,
-                            'submitted_at':
-                                DateTime.now().toUtc().toIso8601String(),
-                          });
-                          if (ctx.mounted) {
-                            Navigator.pop(ctx);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Thanks for your feedback!')),
-                            );
-                          }
-                        } catch (_) {
-                          setState(() {
-                            saving = false;
-                            error = 'Failed to send. Please try again.';
-                          });
-                        }
-                      },
-                child: Text('Submit',
-                    style: GoogleFonts.openSans(
-                        color: AppColors.teal,
-                        fontWeight: FontWeight.w600)),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showPrivacyPolicy(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: AppColors.teal, width: 2),
-        ),
-        title: Text('Privacy Policy',
-            style: GoogleFonts.openSans(fontWeight: FontWeight.w600)),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: SingleChildScrollView(
-            child: Text(
-              'FocusFlow collects only the data necessary to provide the service: '
-              'your email address for authentication, display name, and the timer '
-              'configurations you create.\n\n'
-              'Your data is stored securely in Google Firebase and is never sold '
-              'or shared with third parties.\n\n'
-              'You may export or delete your data at any time from this screen. '
-              'Deleting your account permanently removes all associated data.\n\n'
-              'We use no third-party analytics or advertising SDKs.\n\n'
-              'For questions, contact us via the feedback form.',
-              style: GoogleFonts.openSans(
-                  fontSize: 13, color: AppColors.subtitleText, height: 1.6),
-            ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close',
-                style: GoogleFonts.openSans(
-                    color: AppColors.teal, fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static InputDecoration _fieldDecoration(String hint) => InputDecoration(
-        hintText: hint,
-        filled: true,
-        fillColor: const Color(0xFFF7F7FB),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
-        ),
-      );
 
   static String _formatMonth(DateTime dt) {
     const months = [
