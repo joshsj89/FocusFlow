@@ -28,10 +28,24 @@ class _HomeScreenState extends State<HomeScreen> {
   TimerModel? _activeTimer;
   bool _isPlaying = false;
   late int _secondsRemaining;
+  int _currentSession = 1;
   Timer? _countdownTimer;
   late final Stream<List<TimerModel>> _timerStream;
 
   int get _totalSeconds => (_activeTimer?.durationMins ?? 25) * 60;
+  int get _totalSessions => _activeTimer?.sessions ?? 1;
+
+  List<DotStatus> get _sessionDots => List.generate(_totalSessions, (i) {
+        if (i + 1 < _currentSession) return DotStatus.completed;
+        if (i + 1 == _currentSession) return DotStatus.current;
+        return DotStatus.upcoming;
+      });
+
+  String get _sessionLabel {
+    final completed = _currentSession - 1;
+    if (completed == 0) return 'Session 1 of $_totalSessions';
+    return '$completed of $_totalSessions sessions complete';
+  }
 
   @override
   void initState() {
@@ -71,11 +85,28 @@ class _HomeScreenState extends State<HomeScreen> {
           _secondsRemaining = 0;
           _isPlaying = false;
         });
-        _showSessionComplete();
+        _onSessionComplete();
       } else {
         setState(() => _secondsRemaining--);
       }
     });
+  }
+
+  void _onSessionComplete() {
+    if (_currentSession < _totalSessions) {
+      setState(() {
+        _currentSession++;
+        _secondsRemaining = _totalSeconds;
+      });
+    } else {
+      final completed = _currentSession;
+      final total = _totalSessions;
+      setState(() {
+        _currentSession = 1;
+        _secondsRemaining = _totalSeconds;
+      });
+      _showSessionComplete(completed, total);
+    }
   }
 
   void _selectTimer(TimerModel timer) {
@@ -83,15 +114,13 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _activeTimer = timer;
       _isPlaying = false;
+      _currentSession = 1;
       _secondsRemaining = timer.durationMins * 60;
     });
   }
 
   void _togglePlayPause() {
     final willPlay = !_isPlaying;
-    if (willPlay && _secondsRemaining == 0) {
-      setState(() => _secondsRemaining = _totalSeconds);
-    }
     setState(() => _isPlaying = willPlay);
     if (willPlay) {
       _startCountdown();
@@ -104,18 +133,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _countdownTimer?.cancel();
     setState(() {
       _isPlaying = false;
+      _currentSession = 1;
       _secondsRemaining = _totalSeconds;
     });
   }
 
-  void _showSessionComplete() {
+  void _showSessionComplete(int sessionsCompleted, int totalSessions) {
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => SessionCompleteSheet(
-        focusMins: _totalSeconds ~/ 60,
-        sessionsCompleted: 4,
-        totalSessions: 4,
+        focusMins: (_activeTimer?.durationMins ?? 25) * sessionsCompleted,
+        sessionsCompleted: sessionsCompleted,
+        totalSessions: totalSessions,
       ),
     );
   }
@@ -160,16 +190,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  const SessionProgress(
-                    dots: [
-                      DotStatus.completed,
-                      DotStatus.completed,
-                      DotStatus.current,
-                      DotStatus.upcoming,
-                      DotStatus.upcoming,
-                      DotStatus.skipped,
-                    ],
-                    label: '7 sessions complete',
+                  SessionProgress(
+                    dots: _sessionDots,
+                    label: _sessionLabel,
                   ),
                   const SizedBox(height: 22),
                   PlaybackControls(
