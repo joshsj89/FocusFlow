@@ -22,6 +22,7 @@ import '../widgets/streaks_sheet.dart';
 import '../widgets/session_complete_sheet.dart';
 import '../widgets/weekly_wellness_sheet.dart';
 import '../widgets/animated_press.dart';
+import '../widgets/sound_picker_sheet.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -249,7 +250,13 @@ class _HomeScreenState extends State<HomeScreen> {
                     onCancel: _rewind,
                   ),
                   const SizedBox(height: 22),
-                  const SoundSelectorBar(soundName: 'Ambient Rain'),
+                  SoundSelectorBar(
+                    onTap: () => showModalBottomSheet<void>(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      builder: (_) => const SoundPickerSheet(),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   StreamBuilder<List<TimerModel>>(
                     stream: _timerStream,
