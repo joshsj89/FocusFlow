@@ -75,21 +75,23 @@ class _SoundPickerSheetState extends State<SoundPickerSheet> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (_tracks.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-              child: Column(
-                children: [
-                  Icon(Icons.music_off_rounded, color: Colors.grey[400], size: 40),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No music files found.\nDrop .mp3 or .wav files into assets/music/ and rebuild.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.openSans(
-                      color: AppColors.subtitleText,
-                      fontSize: 13,
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                child: Column(
+                  children: [
+                    Icon(Icons.music_off_rounded, color: Colors.grey[400], size: 40),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No music files found.\nDrop .mp3 or .wav files into assets/music/ and rebuild.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.openSans(
+                        color: AppColors.subtitleText,
+                        fontSize: 13,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             )
           else

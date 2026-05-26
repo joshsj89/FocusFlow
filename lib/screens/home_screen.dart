@@ -4,6 +4,8 @@ import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:sensors_plus/sensors_plus.dart';
+import 'package:proximity_sensor/proximity_sensor.dart';
+import 'package:vibration/vibration.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/timer_model.dart';
 import '../services/timer_service.dart';
@@ -38,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _currentSession = 1;
   Timer? _countdownTimer;
   StreamSubscription<UserAccelerometerEvent>? _motionSub;
+  StreamSubscription<dynamic>? _proximitySub;
   late final Stream<List<TimerModel>> _timerStream;
 
   int get _totalSeconds => (_activeTimer?.durationMins ?? 25) * 60;
@@ -64,11 +67,17 @@ class _HomeScreenState extends State<HomeScreen> {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       _startMotionDetection();
     }
+    if (!kIsWeb &&
+        (defaultTargetPlatform == TargetPlatform.android ||
+            defaultTargetPlatform == TargetPlatform.iOS)) {
+      _startProximityDetection();
+    }
   }
 
   @override
   void dispose() {
     _motionSub?.cancel();
+    _proximitySub?.cancel();
     _countdownTimer?.cancel();
     super.dispose();
   }
@@ -94,6 +103,40 @@ class _HomeScreenState extends State<HomeScreen> {
     }, onError: (_) {
       // sensor unavailable on this device — no-op
     });
+  }
+
+  // basically setting the phone down starts the timer and uses a vibration to tell the user it's done.
+  void _startProximityDetection() {
+    _proximitySub = ProximitySensor.events.listen((dynamic event) {
+      if (!mounted) return;
+      // 0 = near (face-down / covered), >0 = far
+      final isNear = (event as num) < 1;
+      if (isNear && !_isPlaying && _activeTimer != null) {
+        _togglePlayPause();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Timer started, stay focused!'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else if (!isNear && _isPlaying) {
+        _togglePlayPause();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Timer paused.'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }, onError: (_) {});
+  }
+
+  Future<void> _vibrateComplete() async {
+    if (kIsWeb) return;
+    if (await Vibration.hasVibrator()) {
+      // two short taps then a long buzz
+      Vibration.vibrate(pattern: [0, 150, 80, 150, 80, 500]);
+    }
   }
 
   String get _greeting {
@@ -142,6 +185,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null) StreakService.recordToday(uid);
+      _vibrateComplete();
       _showSessionComplete(completed, total);
     }
   }

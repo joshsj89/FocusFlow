@@ -38,6 +38,8 @@ dependencies:
   cloud_firestore: ^6.4.1
   sensors_plus: ^7.0.0
   just_audio: ^0.9.40
+  proximity_sensor: ^1.0.5
+  vibration: ^2.0.0
 
 dev_dependencies:
   flutter_test:
