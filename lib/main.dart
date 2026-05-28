@@ -1,11 +1,8 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:focusflow/screens/account_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'app.dart';
 import 'firebase_options.dart';
-import 'screens/home_screen.dart';
-import 'screens/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -18,7 +15,7 @@ class FocusFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return MaterialApp.router(
       title: 'FocusFlow',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
@@ -28,31 +25,7 @@ class FocusFlowApp extends StatelessWidget {
         ),
         textTheme: GoogleFonts.openSansTextTheme(),
       ),
-      home: const _AuthGate(),
-      routes: {
-        '/home': (context) => const HomeScreen(),
-        '/account': (context) => const AccountScreen(),
-      },
-    );
-  }
-}
-
-class _AuthGate extends StatelessWidget {
-  const _AuthGate();
-
-  @override
-  Widget build(BuildContext context) {
-    return StreamBuilder<User?>(
-      stream: FirebaseAuth.instance.authStateChanges(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        if (snapshot.hasData) return const HomeScreen();
-        return const LoginScreen();
-      },
+      routerConfig: router,
     );
   }
 }

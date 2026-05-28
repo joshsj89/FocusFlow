@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 import '../widgets/animated_press.dart';
@@ -38,10 +39,11 @@ class _LoginScreenState extends State<LoginScreen> {
     });
     try {
       if (_isSignUp) {
-        final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-          email: _emailController.text.trim(),
-          password: _passwordController.text,
-        );
+        final credential = await FirebaseAuth.instance
+            .createUserWithEmailAndPassword(
+              email: _emailController.text.trim(),
+              password: _passwordController.text,
+            );
         final name = _nameController.text.trim();
         if (name.isNotEmpty) {
           await credential.user?.updateDisplayName(name);
@@ -52,6 +54,7 @@ class _LoginScreenState extends State<LoginScreen> {
           password: _passwordController.text,
         );
       }
+      if (mounted) context.go('/home');
     } on FirebaseAuthException catch (e) {
       assert(() {
         debugPrint('FirebaseAuthException: code=${e.code} msg=${e.message}');
@@ -116,7 +119,8 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: 'Display Name',
                     keyboardType: TextInputType.name,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty) return 'Enter a display name';
+                      if (v == null || v.trim().isEmpty)
+                        return 'Enter a display name';
                       return null;
                     },
                   ),
@@ -127,7 +131,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Email',
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Enter your email';
+                    if (v == null || v.trim().isEmpty)
+                      return 'Enter your email';
                     if (!v.contains('@')) return 'Enter a valid email';
                     return null;
                   },
@@ -160,7 +165,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 14),
                   Container(
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                      horizontal: 14,
+                      vertical: 10,
+                    ),
                     decoration: BoxDecoration(
                       color: Colors.red.shade50,
                       borderRadius: BorderRadius.circular(10),
@@ -180,7 +187,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: _loading ? AppColors.teal.withAlpha(160) : AppColors.teal,
+                      color: _loading
+                          ? AppColors.teal.withAlpha(160)
+                          : AppColors.teal,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -263,7 +272,11 @@ class _Logo extends StatelessWidget {
             color: AppColors.teal,
             borderRadius: BorderRadius.circular(12),
           ),
-          child: const Icon(Icons.timer_outlined, color: Colors.white, size: 26),
+          child: const Icon(
+            Icons.timer_outlined,
+            color: Colors.white,
+            size: 26,
+          ),
         ),
         const SizedBox(width: 12),
         Text(
@@ -313,8 +326,10 @@ class _Field extends StatelessWidget {
         suffixIcon: suffixIcon,
         filled: true,
         fillColor: const Color(0xFFF7F7FB),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,

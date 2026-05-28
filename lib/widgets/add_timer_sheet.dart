@@ -57,7 +57,7 @@ class _AddTimerSheetState extends State<AddTimerSheet> {
     });
     try {
       await TimerService.addTimer(uid,
-          name: name, durationMins: duration, sessions: _sessions);
+          name: name, focusDuration: duration * 60, sessionsPerSit: _sessions);
       if (mounted) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) setState(() => _errorMessage = e.toString());
