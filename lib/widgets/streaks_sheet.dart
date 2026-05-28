@@ -1,17 +1,17 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../models/streak_model.dart';
+import '../services/streak_service.dart';
 import '../theme/app_colors.dart';
 import 'animated_press.dart';
 
 class StreaksSheet extends StatelessWidget {
   const StreaksSheet({super.key});
 
-  // Demo streak days — replace with real data later
-  static const _streakDays = {1, 2, 3, 4, 8, 9, 10, 11, 15, 16, 22, 23};
-  static const _streakCount = 12;
-
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     final now = DateTime.now();
     final daysInMonth = DateUtils.getDaysInMonth(now.year, now.month);
     final monthLabel = _monthName(now.month);
@@ -22,30 +22,42 @@ class StreaksSheet extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 32),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(20, 20, 20, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _TitleRow(onClose: () => Navigator.of(context).pop()),
-            const SizedBox(height: 16),
-            _StreakInfoCard(count: _streakCount),
-            const SizedBox(height: 16),
-            Text(
-              monthLabel,
-              style: GoogleFonts.openSans(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.darkNavy,
-              ),
-            ),
-            const SizedBox(height: 8),
-            _CalendarGrid(
-              daysInMonth: daysInMonth,
-              streakDays: _streakDays,
-            ),
-            const SizedBox(height: 20),
-            _CloseButton(onPressed: () => Navigator.of(context).pop()),
-          ],
+        child: StreamBuilder<StreakModel>(
+          stream: uid != null
+              ? StreakService.watchStreaks(uid)
+              : const Stream.empty(),
+          initialData: StreakModel.empty(),
+          builder: (context, snapshot) {
+            final model = snapshot.data ?? StreakModel.empty();
+            final streakDays = model.activeDaysInMonth(now.year, now.month);
+            final streakCount = model.currentStreak;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _TitleRow(onClose: () => Navigator.of(context).pop()),
+                const SizedBox(height: 16),
+                _StreakInfoCard(count: streakCount),
+                const SizedBox(height: 16),
+                Text(
+                  monthLabel,
+                  style: GoogleFonts.openSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.darkNavy,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _CalendarGrid(
+                  daysInMonth: daysInMonth,
+                  streakDays: streakDays,
+                ),
+                const SizedBox(height: 20),
+                _CloseButton(onPressed: () => Navigator.of(context).pop()),
+              ],
+            );
+          },
         ),
       ),
     );
