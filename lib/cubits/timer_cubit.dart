@@ -91,6 +91,7 @@ class TimerCubit extends Cubit<TimerState> {
   TimerPhase _phase = TimerPhase.focus;
   StreamSubscription<UserAccelerometerEvent>? _motionSub;
   StreamSubscription<dynamic>? _proximitySub;
+  bool _phoneIsDown = false;
 
   void loadProfile(TimerProfile profile) {
     _cancelTicker();
@@ -223,6 +224,8 @@ class TimerCubit extends Cubit<TimerState> {
         defaultTargetPlatform == TargetPlatform.iOS) {
       _proximitySub = ProximitySensor.events.listen((dynamic event) {
         final isNear = (event as num) < 1;
+        if (isNear == _phoneIsDown) return;
+        _phoneIsDown = isNear;
         final s = state;
         if (isNear && (s is TimerInitial || s is TimerPaused)) {
           startTimer();
