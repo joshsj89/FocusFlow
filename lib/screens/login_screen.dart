@@ -119,8 +119,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     label: 'Display Name',
                     keyboardType: TextInputType.name,
                     validator: (v) {
-                      if (v == null || v.trim().isEmpty)
+                      if (v == null || v.trim().isEmpty) {
                         return 'Enter a display name';
+                      }
                       return null;
                     },
                   ),
@@ -131,8 +132,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   label: 'Email',
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty)
+                    if (v == null || v.trim().isEmpty) {
                       return 'Enter your email';
+                    }
                     if (!v.contains('@')) return 'Enter a valid email';
                     return null;
                   },

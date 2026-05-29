@@ -1,6 +1,11 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:equatable/equatable.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:proximity_sensor/proximity_sensor.dart';
+import 'package:sensors_plus/sensors_plus.dart';
+import 'package:vibration/vibration.dart';
 import '../models/timer_profile.dart';
 
 enum TimerPhase { focus, shortBreak, longBreak }
@@ -84,6 +89,8 @@ class TimerCubit extends Cubit<TimerState> {
   int _remainingSeconds = 0;
   int _completedSessions = 0;
   TimerPhase _phase = TimerPhase.focus;
+  StreamSubscription<UserAccelerometerEvent>? _motionSub;
+  StreamSubscription<dynamic>? _proximitySub;
 
   void loadProfile(TimerProfile profile) {
     _cancelTicker();
@@ -92,6 +99,7 @@ class TimerCubit extends Cubit<TimerState> {
     _completedSessions = 0;
     _phase = TimerPhase.focus;
     emit(const TimerInitial());
+    _startSensors();
   }
 
   void startTimer() {
@@ -157,6 +165,7 @@ class TimerCubit extends Cubit<TimerState> {
 
       if (_phase == TimerPhase.focus) {
         _completedSessions++;
+        _vibrateComplete();
         emit(TimerCompleted(completedSessions: _completedSessions));
       } else {
         // Break ended — return to idle so user can start the next session
@@ -195,9 +204,53 @@ class TimerCubit extends Cubit<TimerState> {
     _ticker = null;
   }
 
+  void _startSensors() {
+    _stopSensors();
+    if (kIsWeb) return;
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      _motionSub = userAccelerometerEventStream(
+        samplingPeriod: const Duration(milliseconds: 100),
+      ).listen((event) {
+        if (state is! TimerRunning) return;
+        final magnitude =
+            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
+        if (magnitude > 3.0) pauseTimer();
+      }, onError: (_) {});
+    }
+
+    if (defaultTargetPlatform == TargetPlatform.android ||
+        defaultTargetPlatform == TargetPlatform.iOS) {
+      _proximitySub = ProximitySensor.events.listen((dynamic event) {
+        final isNear = (event as num) < 1;
+        final s = state;
+        if (isNear && (s is TimerInitial || s is TimerPaused)) {
+          startTimer();
+        } else if (!isNear && s is TimerRunning) {
+          pauseTimer();
+        }
+      }, onError: (_) {});
+    }
+  }
+
+  void _stopSensors() {
+    _motionSub?.cancel();
+    _motionSub = null;
+    _proximitySub?.cancel();
+    _proximitySub = null;
+  }
+
+  Future<void> _vibrateComplete() async {
+    if (kIsWeb) return;
+    if (await Vibration.hasVibrator()) {
+      Vibration.vibrate(pattern: [0, 150, 80, 150, 80, 500]);
+    }
+  }
+
   @override
   Future<void> close() {
     _cancelTicker();
+    _stopSensors();
     return super.close();
   }
 }
