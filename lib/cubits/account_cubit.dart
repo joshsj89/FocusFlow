@@ -49,7 +49,6 @@ class AccountError extends AccountState {
   List<Object?> get props => [message];
 }
 
-// ── Cubit ─────────────────────────────────────────────────────────────────────
 
 class AccountCubit extends Cubit<AccountState> {
   AccountCubit() : super(const AccountLoading());
@@ -68,7 +67,7 @@ class AccountCubit extends Cubit<AccountState> {
       final doc = await _users.doc(user.uid).get();
       final data = doc.data();
       if (data == null) {
-        // First login — create the user document
+        // First login create the user document
         final newProfile = UserProfile(
           uid: user.uid,
           displayName: user.displayName ?? '',
@@ -76,8 +75,7 @@ class AccountCubit extends Cubit<AccountState> {
           memberSince: DateTime.now(),
           appleHealthSyncEnabled: false,
         );
-        // merge:true preserves fields written by other services (e.g. fcmTokens
-        // from NotificationService) that may land before this first-login write.
+
         await _users
             .doc(user.uid)
             .set(newProfile.toMap(), SetOptions(merge: true));
