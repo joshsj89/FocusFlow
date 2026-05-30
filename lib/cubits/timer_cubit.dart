@@ -222,9 +222,9 @@ class TimerCubit extends Cubit<TimerState> {
 
     if (defaultTargetPlatform == TargetPlatform.android ||
         defaultTargetPlatform == TargetPlatform.iOS) {
-      _proximitySub = ProximitySensor.events.listen((dynamic event) {
-        final isNear = (event as num) < 1;
-        if (isNear == _phoneIsDown) return;
+      _proximitySub = ProximitySensor.events.listen((int event) {
+        final isNear = event > 0; // ProximitySensor event is 0 for far, 1 for near
+        if (isNear == _phoneIsDown) return; // no changes
         _phoneIsDown = isNear;
         final s = state;
         if (isNear && (s is TimerInitial || s is TimerPaused)) {
