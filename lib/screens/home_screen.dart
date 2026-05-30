@@ -163,10 +163,7 @@ class _HomeView extends StatelessWidget {
                                   : null,
                             ),
                             const SizedBox(height: 22),
-                            SoundSelectorBar(
-                              soundName:
-                                  profile?.soundscapeId ?? 'Ambient Rain',
-                            ),
+                            const SoundSelectorBar(),
                             const SizedBox(height: 16),
                             _TimerList(
                               profiles: activeState.allProfiles,
