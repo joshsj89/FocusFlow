@@ -37,10 +37,12 @@ export const streakReminderNudge = onSchedule(
     let delivered = 0;
 
     for (const streakDoc of streaksSnap.docs) {
-      const activeDays: string[] = streakDoc.data().activeDays ?? [];
-      if (activeDays.includes(today)) continue;
-      // Streak is already broken no nudge.
-      if (!activeDays.includes(yesterday)) continue;
+
+      // commented out for test
+      // const activeDays: string[] = streakDoc.data().activeDays ?? [];
+      // if (activeDays.includes(today)) continue;
+      // // Streak is already broken no nudge.
+      // if (!activeDays.includes(yesterday)) continue;
 
       candidates++;
       const uid = streakDoc.id;
