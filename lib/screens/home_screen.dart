@@ -15,7 +15,6 @@ import '../widgets/playback_controls.dart';
 import '../widgets/session_complete_sheet.dart';
 import '../widgets/session_progress.dart';
 import '../widgets/sound_selector_bar.dart';
-import '../widgets/streaks_sheet.dart';
 import '../widgets/timer_card.dart';
 import '../widgets/timer_display.dart';
 import '../widgets/weekly_wellness_sheet.dart';
@@ -119,14 +118,19 @@ class _HomeView extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             _TopActionIcons(
-                              onAchievements: () => showDialog<void>(
-                                context: context,
-                                builder: (_) => const StreaksSheet(),
-                              ),
-                              onMood: () => showDialog<void>(
-                                context: context,
-                                builder: (_) => const WeeklyWellnessSheet(),
-                              ),
+                              onAchievements: () =>
+                                  context.push('/streaks'),
+                              onMood: () {
+                                final cubit = context.read<WellnessCubit>()
+                                  ..loadWeeklySummary();
+                                showDialog<void>(
+                                  context: context,
+                                  builder: (_) => BlocProvider.value(
+                                    value: cubit,
+                                    child: const WeeklyWellnessSheet(),
+                                  ),
+                                );
+                              },
                             ),
                             const SizedBox(height: 4),
                             Center(
