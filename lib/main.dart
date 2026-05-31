@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await NotificationService.init();
   runApp(const FocusFlowApp());
 }
 
@@ -18,6 +20,7 @@ class FocusFlowApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'FocusFlow',
       debugShowCheckedModeBanner: false,
+      scaffoldMessengerKey: NotificationService.messengerKey,
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(

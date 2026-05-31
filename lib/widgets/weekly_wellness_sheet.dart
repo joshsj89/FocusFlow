@@ -92,7 +92,7 @@ class _WellnessContent extends StatelessWidget {
   }
 
   static String _dateRange(DateTime start, DateTime end) {
-    final months = [
+    const months = [
       'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
       'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
     ];
@@ -195,10 +195,8 @@ class _StatDivider extends StatelessWidget {
   const _StatDivider();
 
   @override
-  Widget build(BuildContext context) {
-    return Container(
-        width: 1, height: 36, color: Colors.white.withAlpha(60));
-  }
+  Widget build(BuildContext context) =>
+      Container(width: 1, height: 36, color: Colors.white.withAlpha(60));
 }
 
 class _CloseButton extends StatefulWidget {

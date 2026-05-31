@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../models/user_profile.dart';
+import '../services/notification_service.dart';
 
 // ── States ────────────────────────────────────────────────────────────────────
 
@@ -48,7 +49,6 @@ class AccountError extends AccountState {
   List<Object?> get props => [message];
 }
 
-// ── Cubit ─────────────────────────────────────────────────────────────────────
 
 class AccountCubit extends Cubit<AccountState> {
   AccountCubit() : super(const AccountLoading());
@@ -67,7 +67,7 @@ class AccountCubit extends Cubit<AccountState> {
       final doc = await _users.doc(user.uid).get();
       final data = doc.data();
       if (data == null) {
-        // First login — create the user document
+        // First login create the user document
         final newProfile = UserProfile(
           uid: user.uid,
           displayName: user.displayName ?? '',
@@ -75,7 +75,10 @@ class AccountCubit extends Cubit<AccountState> {
           memberSince: DateTime.now(),
           appleHealthSyncEnabled: false,
         );
-        await _users.doc(user.uid).set(newProfile.toMap());
+
+        await _users
+            .doc(user.uid)
+            .set(newProfile.toMap(), SetOptions(merge: true));
         emit(AccountLoaded(profile: newProfile));
       } else {
         emit(AccountLoaded(profile: UserProfile.fromMap(user.uid, data)));
@@ -123,6 +126,10 @@ class AccountCubit extends Cubit<AccountState> {
   }
 
   Future<void> signOut() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid != null) {
+      await NotificationService.clearTokenForUser(uid);
+    }
     await FirebaseAuth.instance.signOut();
     emit(const AccountSignedOut());
   }
@@ -133,6 +140,8 @@ class AccountCubit extends Cubit<AccountState> {
     emit(current.copyWith(isSaving: true));
     try {
       final uid = current.profile.uid;
+      // Stop this device from receiving notifications for the deleted account
+      await NotificationService.clearTokenForUser(uid);
       // Delete subcollections then the user document
       await _deleteSubcollection(uid, 'timers');
       await _deleteSubcollection(uid, 'sessions');
