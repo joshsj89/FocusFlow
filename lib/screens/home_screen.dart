@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../constants/break_suggestions.dart';
 import '../cubits/active_timer_cubit.dart';
 import '../cubits/session_cubit.dart';
 import '../cubits/timer_cubit.dart';
 import '../cubits/wellness_cubit.dart';
+import '../models/break_suggestion.dart';
 import '../models/timer_profile.dart';
 import '../theme/app_colors.dart';
 import '../widgets/add_timer_sheet.dart';
@@ -93,6 +95,32 @@ class _HomeView extends StatelessWidget {
           return BlocBuilder<ActiveTimerCubit, ActiveTimerState>(
             builder: (context, activeState) {
               final profile = activeState.activeProfile;
+
+              // ── Break state ───────────────────────────────────────────────
+              if (timerState is TimerOnBreak) {
+                return Scaffold(
+                  backgroundColor: Colors.white,
+                  bottomNavigationBar: _AddTimerBar(
+                    onAdd: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => const AddTimerSheet(),
+                    ),
+                  ),
+                  body: Column(
+                    children: [
+                      const _BreakHeader(),
+                      Expanded(
+                        child: _BreakBody(
+                          state: timerState,
+                          profile: profile,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // ── Focus / idle state ────────────────────────────────────────
               final isPlaying = timerState is TimerRunning;
               final canPlay = profile != null;
 
@@ -422,6 +450,207 @@ class _TopActionIcons extends StatelessWidget {
             icon: const Icon(Icons.sentiment_satisfied_alt_outlined),
             color: AppColors.purple,
             onPressed: onMood,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Break state widgets ───────────────────────────────────────────────────────
+
+class _BreakHeader extends StatelessWidget {
+  const _BreakHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.teal,
+      width: double.infinity,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top + 14,
+        bottom: 18,
+      ),
+      child: Center(
+        child: Text(
+          'Take A Break',
+          style: GoogleFonts.openSans(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BreakBody extends StatelessWidget {
+  final TimerOnBreak state;
+  final TimerProfile? profile;
+
+  const _BreakBody({required this.state, this.profile});
+
+  // Stable pick: same break duration → same suggestion throughout the break
+  BreakSuggestion get _suggestion =>
+      kBreakSuggestions[state.totalSeconds % kBreakSuggestions.length];
+
+  @override
+  Widget build(BuildContext context) {
+    final m = state.remainingSeconds ~/ 60;
+    final s = state.remainingSeconds % 60;
+    final timeLabel =
+        '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
+    final progress = state.totalSeconds > 0
+        ? state.remainingSeconds / state.totalSeconds
+        : 1.0;
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      child: Column(
+        children: [
+          Center(
+            child: TimerDisplay(
+              timeLabel: timeLabel,
+              progress: progress,
+              isPlaying: true,
+            ),
+          ),
+          const SizedBox(height: 24),
+          _SuggestionCard(suggestion: _suggestion),
+          const SizedBox(height: 12),
+          _UpcomingSessionCard(profile: profile),
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: () => context.read<TimerCubit>().skipBreak(),
+            child: Text(
+              'Skip Break',
+              style: GoogleFonts.openSans(
+                color: AppColors.subtitleText,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SuggestionCard extends StatelessWidget {
+  final BreakSuggestion suggestion;
+
+  const _SuggestionCard({required this.suggestion});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.cardBorder),
+        boxShadow: const [
+          BoxShadow(
+            color: Color.fromRGBO(0, 0, 0, 0.04),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.teal.withValues(alpha: 0.12),
+            ),
+            child: Icon(
+              _categoryIcon(suggestion.category),
+              color: AppColors.teal,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  suggestion.title,
+                  style: GoogleFonts.openSans(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.darkNavy,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  suggestion.description,
+                  style: GoogleFonts.openSans(
+                    fontSize: 11,
+                    color: AppColors.subtitleText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _categoryIcon(String category) => switch (category) {
+        'movement' => Icons.directions_walk_rounded,
+        'breathing' => Icons.air_rounded,
+        'hydration' => Icons.water_drop_rounded,
+        'mindfulness' => Icons.self_improvement_rounded,
+        _ => Icons.star_rounded,
+      };
+}
+
+class _UpcomingSessionCard extends StatelessWidget {
+  final TimerProfile? profile;
+
+  const _UpcomingSessionCard({this.profile});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4FB),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer_outlined, color: AppColors.purple, size: 22),
+          const SizedBox(width: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Up Next',
+                style: GoogleFonts.openSans(
+                  fontSize: 11,
+                  color: AppColors.subtitleText,
+                ),
+              ),
+              Text(
+                profile != null
+                    ? '${profile!.name} · ${profile!.focusDuration ~/ 60} min'
+                    : 'Select a timer',
+                style: GoogleFonts.openSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.darkNavy,
+                ),
+              ),
+            ],
           ),
         ],
       ),
