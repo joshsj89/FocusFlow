@@ -224,7 +224,7 @@ class CustomPill extends StatelessWidget {
 class SessionsCounter extends StatelessWidget {
   final int value;
   final VoidCallback? onDecrement;
-  final VoidCallback onIncrement;
+  final VoidCallback? onIncrement;
 
   const SessionsCounter({
     super.key,
