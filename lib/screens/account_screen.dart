@@ -160,16 +160,6 @@ class _AccountBody extends StatelessWidget {
                     ],
                   ),
                   _SettingsGroup(
-                    title: 'Support',
-                    items: [
-                      _SettingsTile(
-                        icon: Icons.feedback_outlined,
-                        title: 'Send feedback',
-                        onTap: () {},
-                      ),
-                    ],
-                  ),
-                  _SettingsGroup(
                     title: 'Account Actions',
                     items: [
                       _SettingsTile(
