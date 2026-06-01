@@ -13,23 +13,7 @@ class EditTimerSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (_) => TimerFormCubit.fromExisting(timer),
-      child: const _EditFormBody(),
-    );
-  }
-}
-
-class _EditFormBody extends StatelessWidget {
-  const _EditFormBody();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        TimerFormBody(title: 'Edit Timer', isEdit: true),
-        const FormDeleteButton(),
-        const SizedBox(height: 12),
-      ],
+      child: const TimerFormBody(title: 'Edit Timer', isEdit: true),
     );
   }
 }

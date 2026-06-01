@@ -89,6 +89,10 @@ class TimerFormBody extends StatelessWidget {
                 const FormSessionsCounter(),
                 const SizedBox(height: 28),
                 FormConfirmButton(isEdit: isEdit),
+                if (isEdit) ...[
+                  const SizedBox(height: 10),
+                  const FormDeleteButton(),
+                ],
               ],
             ),
           ),
