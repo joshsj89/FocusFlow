@@ -8,8 +8,10 @@ import 'services/notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService.init();
   runApp(const FocusFlowApp());
+  // Init notifications after the app is rendered — requestPermission() and
+  // getToken() can block for several seconds and must not delay runApp.
+  NotificationService.init().catchError((_) {});
 }
 
 class FocusFlowApp extends StatelessWidget {
