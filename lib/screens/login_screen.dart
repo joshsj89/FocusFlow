@@ -163,6 +163,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
+                if (!_isSignUp) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () async {
+                        final email = _emailController.text.trim();
+                        if (email.isEmpty) {
+                          setState(() =>
+                              _errorMessage = 'Enter your email first.');
+                          return;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await FirebaseAuth.instance
+                              .sendPasswordResetEmail(email: email);
+                          if (!mounted) return;
+                          setState(() => _errorMessage = null);
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Password reset email sent to $email'),
+                            ),
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          if (mounted) {
+                            setState(() =>
+                                _errorMessage = _friendlyError(e.code));
+                          }
+                        }
+                      },
+                      child: Text(
+                        'Forgot password?',
+                        style: GoogleFonts.openSans(
+                          fontSize: 13,
+                          color: AppColors.purple,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 14),
                   Container(
