@@ -1,3 +1,4 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focusflow/theme/app_colors.dart';
@@ -6,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../cubits/account_cubit.dart';
 import '../models/user_profile.dart';
 import '../widgets/animated_press.dart';
+import '../widgets/premium_paywall_sheet.dart';
 
 class AccountScreen extends StatelessWidget {
   const AccountScreen({super.key});
@@ -22,6 +24,13 @@ class AccountScreen extends StatelessWidget {
           if (state is AccountError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.message)),
+            );
+          }
+          if (state is AccountDataExported && state.copiedToClipboard) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Data copied to clipboard — paste into a file to save it.'),
+              ),
             );
           }
         },
@@ -90,8 +99,32 @@ class _AccountBody extends StatelessWidget {
                       _SettingsTile(
                         icon: Icons.vpn_key_outlined,
                         title: 'Password',
-                        subtitle: 'Tap to change',
-                        onTap: () {},
+                        subtitle: 'Tap to send reset email',
+                        onTap: () async {
+                          final email = profile.email;
+                          if (email.isEmpty) return;
+                          try {
+                            await FirebaseAuth.instance
+                                .sendPasswordResetEmail(email: email);
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                      'Password reset email sent to $email'),
+                                ),
+                              );
+                            }
+                          } catch (_) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      'Failed to send reset email. Try again.'),
+                                ),
+                              );
+                            }
+                          }
+                        },
                       ),
                     ],
                   ),
@@ -101,29 +134,27 @@ class _AccountBody extends StatelessWidget {
                       _SettingsTile(
                         icon: Icons.download_outlined,
                         title: 'Export my data',
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                  "We'll email your data export within 24 hours"),
-                            ),
-                          );
-                        },
+                        onTap: () =>
+                            context.read<AccountCubit>().requestDataExport(),
                       ),
+                    ],
+                  ),
+                  // TODO: remove — temporary paywall test button
+                  _SettingsGroup(
+                    title: '⭐ Premium (Temp)',
+                    items: [
                       _SettingsTile(
-                        icon: Icons.favorite_border,
-                        title: 'Apple Health Sync',
-                        subtitle: 'Sync your data with Apple Health',
-                        trailing: Checkbox(
-                          value: profile.appleHealthSyncEnabled,
-                          onChanged: (v) {
-                            if (v != null) {
-                              context
-                                  .read<AccountCubit>()
-                                  .toggleAppleHealthSync(v);
-                            }
-                          },
-                          activeColor: AppColors.purple,
+                        icon: Icons.star_rounded,
+                        title: 'Test Paywall',
+                        onTap: () => showModalBottomSheet<void>(
+                          context: context,
+                          isScrollControlled: true,
+                          isDismissible: true,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(
+                                top: Radius.circular(24)),
+                          ),
+                          builder: (_) => const PremiumPaywallSheet(),
                         ),
                       ),
                     ],
@@ -134,11 +165,6 @@ class _AccountBody extends StatelessWidget {
                       _SettingsTile(
                         icon: Icons.feedback_outlined,
                         title: 'Send feedback',
-                        onTap: () {},
-                      ),
-                      _SettingsTile(
-                        icon: Icons.policy_outlined,
-                        title: 'Privacy policy',
                         onTap: () {},
                       ),
                     ],
