@@ -19,6 +19,7 @@ import '../widgets/session_progress.dart';
 import '../widgets/sound_selector_bar.dart';
 import '../widgets/timer_card.dart';
 import '../widgets/timer_display.dart';
+import '../widgets/sound_picker_sheet.dart';
 import '../widgets/weekly_wellness_sheet.dart';
 
 class HomeScreen extends StatelessWidget {
@@ -207,7 +208,17 @@ class _HomeView extends StatelessWidget {
                                   : null,
                             ),
                             const SizedBox(height: 22),
-                            const SoundSelectorBar(),
+                            SoundSelectorBar(
+                              onTap: () => showModalBottomSheet<void>(
+                                context: context,
+                                isScrollControlled: true,
+                                shape: const RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.vertical(
+                                      top: Radius.circular(20)),
+                                ),
+                                builder: (_) => const SoundPickerSheet(),
+                              ),
+                            ),
                             const SizedBox(height: 16),
                             _TimerList(
                               profiles: activeState.allProfiles,
