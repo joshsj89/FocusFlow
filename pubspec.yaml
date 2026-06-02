@@ -46,6 +46,7 @@ dependencies:
   vibration: ^2.0.0
   in_app_purchase: ^3.0.0
   share_plus: ^10.0.0
+  flutter_local_notifications: ^17.0.0
 
 dev_dependencies:
   flutter_test:

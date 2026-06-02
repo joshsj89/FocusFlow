@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../constants/badge_definitions.dart';
 import '../models/badge.dart';
 import '../models/streak_data.dart';
+import '../services/notification_service.dart';
 
 // ── States ────────────────────────────────────────────────────────────────────
 
@@ -73,14 +74,59 @@ class StreakCubit extends Cubit<StreakState> {
       final badgeDocMap = {
         for (final doc in badgeSnap.docs) doc.id: doc.data(),
       };
-      final badges = kBadgeDefinitions
-          .map((def) => Badge.fromDefinition(def, badgeDocMap[def['id']]))
-          .toList();
 
-      emit(StreakLoaded(
-        streakData: _computeStreak(activeDays),
-        badges: badges,
-      ));
+      final streakData = _computeStreak(activeDays);
+
+      // ── Badge conditions ────────────────────────────────────────────────
+      bool hasEarlyBird = false;
+      bool hasNightOwl = false;
+      for (final doc in sessionSnap.docs) {
+        final raw = doc.data()['completedAt'];
+        if (raw is Timestamp) {
+          final hour = raw.toDate().toLocal().hour;
+          if (hour < 8) hasEarlyBird = true;
+          if (hour >= 22) hasNightOwl = true;
+        }
+      }
+
+      final conditions = {
+        'first_session': sessionSnap.docs.isNotEmpty,
+        'week_warrior': streakData.currentStreak >= 7,
+        'early_bird': hasEarlyBird,
+        'night_owl': hasNightOwl,
+      };
+
+      // ── Award newly earned badges ────────────────────────────────────────
+      final batch = FirebaseFirestore.instance.batch();
+      bool hasNew = false;
+      final badges = <Badge>[];
+
+      for (final def in kBadgeDefinitions) {
+        final id = def['id'] as String;
+        final alreadyEarned = badgeDocMap[id]?['earned'] == true;
+        final conditionMet = conditions[id] ?? false;
+
+        if (!alreadyEarned && conditionMet) {
+          final now = Timestamp.now();
+          batch.set(
+            _userDoc(uid).collection('badges').doc(id),
+            {'earned': true, 'earnedAt': now},
+            SetOptions(merge: true),
+          );
+          badges.add(Badge.fromDefinition(def, {'earned': true, 'earnedAt': now}));
+          hasNew = true;
+          NotificationService.showBadgeNotification(
+            title: '🏅 Badge Earned!',
+            body: 'You earned the "${def['title']}" badge!',
+          );
+        } else {
+          badges.add(Badge.fromDefinition(def, badgeDocMap[id]));
+        }
+      }
+
+      if (hasNew) await batch.commit();
+
+      emit(StreakLoaded(streakData: streakData, badges: badges));
     } catch (_) {
       emit(const StreakError("Couldn't load streaks"));
     }
