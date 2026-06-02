@@ -20,7 +20,9 @@ class UserProfile {
       uid: uid,
       displayName: map['displayName'] as String? ?? '',
       email: map['email'] as String? ?? '',
-      memberSince: (map['memberSince'] as Timestamp).toDate(),
+      memberSince: map['memberSince'] != null
+          ? (map['memberSince'] as Timestamp).toDate()
+          : DateTime.now(),
       appleHealthSyncEnabled: map['appleHealthSyncEnabled'] as bool? ?? false,
     );
   }
