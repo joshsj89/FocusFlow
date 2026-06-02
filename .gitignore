@@ -1,3 +1,6 @@
+# AI / feature instruction files
+feature_instructions/
+
 # Miscellaneous
 *.class
 *.log
