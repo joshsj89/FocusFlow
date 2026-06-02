@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TrackInfo {
   final String assetKey;
@@ -19,6 +20,7 @@ class MusicService extends ChangeNotifier {
   List<TrackInfo> _tracks = [];
   bool _tracksLoaded = false;
   int _playGeneration = 0; // incremented on each play() call; lets concurrent calls bail out
+  static const _kPrefKey = 'focusflow_last_track';
 
   TrackInfo? get currentTrack => _currentTrack;
   bool get isPlaying => _player.playing;
@@ -51,6 +53,24 @@ class MusicService extends ChangeNotifier {
         .where((w) => w.isNotEmpty)
         .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  /// Call once after runApp() to restore the track the user last selected.
+  /// Loads the track list if needed, then restores the visual selection.
+  /// Does NOT auto-play — the timer start will resume playback.
+  Future<void> restoreLastTrack() async {
+    await loadTracks();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedKey = prefs.getString(_kPrefKey);
+      if (savedKey == null) return;
+      final match =
+          _tracks.where((t) => t.assetKey == savedKey).firstOrNull;
+      if (match != null) {
+        _currentTrack = match;
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<List<TrackInfo>> loadTracks() async {
@@ -103,6 +123,10 @@ class MusicService extends ChangeNotifier {
       if (generation != _playGeneration) return;
 
       notifyListeners();
+      // Persist so the selection survives a cold restart
+      SharedPreferences.getInstance()
+          .then((p) => p.setString(_kPrefKey, track.assetKey))
+          .catchError((_) => false);
     } catch (_) {
       if (generation == _playGeneration) {
         _currentTrack = null;
@@ -125,6 +149,9 @@ class MusicService extends ChangeNotifier {
     await _player.stop();
     _currentTrack = null;
     notifyListeners();
+    SharedPreferences.getInstance()
+        .then((p) => p.remove(_kPrefKey))
+        .catchError((_) => false);
   }
 
   @override

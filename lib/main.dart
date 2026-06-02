@@ -3,15 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app.dart';
 import 'firebase_options.dart';
+import 'services/music_service.dart';
 import 'services/notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const FocusFlowApp());
-  // Init notifications after the app is rendered — requestPermission() and
-  // getToken() can block for several seconds and must not delay runApp.
+  // Run post-startup tasks without blocking the UI
   NotificationService.init().catchError((_) {});
+  MusicService.instance.restoreLastTrack().catchError((_) {});
 }
 
 class FocusFlowApp extends StatelessWidget {
