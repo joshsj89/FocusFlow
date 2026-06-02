@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../constants/break_suggestions.dart';
 import '../cubits/active_timer_cubit.dart';
 import '../cubits/session_cubit.dart';
+import '../models/session_record.dart';
+import '../models/wellness_model.dart';
 import '../cubits/timer_cubit.dart';
 import '../cubits/wellness_cubit.dart';
 import '../models/break_suggestion.dart';
@@ -77,30 +79,37 @@ class _HomeView extends StatelessWidget {
             }
           },
         ),
-        // When a session completes, show the mood check-in modal
+        // When a session completes, show the mood check-in modal and save
         BlocListener<TimerCubit, TimerState>(
           listenWhen: (_, next) => next is TimerCompleted,
           listener: (context, state) {
             final timerCubit = context.read<TimerCubit>();
+            final sessionCubit = context.read<SessionCubit>();
+            final profile =
+                context.read<ActiveTimerCubit>().state.activeProfile;
+            final completed = (state as TimerCompleted).completedSessions;
+
             showDialog<void>(
               context: context,
               barrierDismissible: false,
               builder: (_) => SessionCompleteSheet(
-                focusMins: (context
-                            .read<ActiveTimerCubit>()
-                            .state
-                            .activeProfile
-                            ?.focusDuration ??
-                        0) ~/
-                    60,
-                sessionsCompleted:
-                    (state as TimerCompleted).completedSessions,
-                totalSessions: context
-                        .read<ActiveTimerCubit>()
-                        .state
-                        .activeProfile
-                        ?.sessionsPerSit ??
-                    4,
+                focusMins: (profile?.focusDuration ?? 0) ~/ 60,
+                sessionsCompleted: completed,
+                totalSessions: profile?.sessionsPerSit ?? 4,
+                onDone: (mood) {
+                  final uid = FirebaseAuth.instance.currentUser?.uid;
+                  if (uid != null && profile != null) {
+                    sessionCubit.saveSession(SessionRecord(
+                      id: '',
+                      userId: uid,
+                      timerProfileId: profile.id,
+                      focusDurationSeconds: profile.focusDuration,
+                      completedSessions: completed,
+                      mood: _toMoodRating(mood),
+                      completedAt: DateTime.now(),
+                    ));
+                  }
+                },
               ),
             ).then((_) => timerCubit.startBreak());
           },
@@ -282,6 +291,14 @@ class _HomeView extends StatelessWidget {
       return DotStatus.upcoming;
     });
   }
+
+  MoodRating? _toMoodRating(Mood? mood) => switch (mood) {
+        Mood.great => MoodRating.great,
+        Mood.alright => MoodRating.alright,
+        Mood.notWell => MoodRating.notSoWell,
+        Mood.bad => MoodRating.bad,
+        null => null,
+      };
 
   String _sessionLabel(TimerState state, TimerProfile? profile) {
     final completed = switch (state) {
