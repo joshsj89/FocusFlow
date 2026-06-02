@@ -12,8 +12,6 @@ import '../models/timer_profile.dart';
 
 enum TimerPhase { focus, shortBreak, longBreak }
 
-// ── States ────────────────────────────────────────────────────────────────────
-
 abstract class TimerState extends Equatable {
   const TimerState();
   @override
@@ -84,7 +82,6 @@ class TimerOnBreak extends TimerState {
       [remainingSeconds, totalSeconds, nextTimerName, suggestionIndex];
 }
 
-// ── Cubit ─────────────────────────────────────────────────────────────────────
 
 class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
   TimerCubit() : super(const TimerInitial()) {
@@ -146,6 +143,13 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
     ));
   }
 
+  void incrementSession() { // Called by the UI when skip button is pressed
+    if (_profile == null) return;
+    _cancelTicker();
+    _completedSessions++;
+    emit(TimerCompleted(completedSessions: _completedSessions));
+  }
+
   // Called by the UI after the session complete modal is dismissed
   void startBreak() {
     if (_profile == null) return;
@@ -175,8 +179,7 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
   void skipBreak() {
     if (state is! TimerOnBreak) return;
     _cancelTicker();
-    _phase = TimerPhase.focus;
-    _remainingSeconds = _profile!.focusDuration;
+    _startNextFocus();
     // Auto-start the next focus session rather than returning to idle
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     emit(TimerRunning(
@@ -206,7 +209,6 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
     if (backgroundedAt == null) return;
     _backgroundedAt = null;
 
-    // Only fast-forward if the timer was still running (sensor may have paused it)
     if (state is! TimerRunning && state is! TimerOnBreak) return;
 
     final elapsed = DateTime.now().difference(backgroundedAt).inSeconds;
@@ -216,7 +218,7 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
       _completeCurrentPhase();
     } else {
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
-      _emitActiveState(); // immediately reflect new remaining time in UI
+      _emitActiveState();
     }
   }
 
@@ -238,7 +240,18 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
     }
   }
 
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+
+  void _startNextFocus() {
+    if (_completedSessions >= _profile!.sessionsPerSit) {
+      _completedSessions = 0;
+    }
+    _phase = TimerPhase.focus;
+    _remainingSeconds = _profile!.focusDuration;
+  }
+
   // ── Tick ──────────────────────────────────────────────────────────────────────
+
 
   void _tick() {
     if (_remainingSeconds <= 1) {
@@ -271,9 +284,8 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
       _vibrateComplete();
       emit(TimerCompleted(completedSessions: _completedSessions));
     } else {
-      // Break ended — return to idle
-      _phase = TimerPhase.focus;
-      _remainingSeconds = _profile!.focusDuration;
+      // Break ended — reset sessions if a full sit is done, then return to idle
+      _startNextFocus();
       emit(const TimerInitial());
     }
   }
