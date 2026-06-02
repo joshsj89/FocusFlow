@@ -94,7 +94,11 @@ class _AccountBody extends StatelessWidget {
                         icon: Icons.mail_outline,
                         title: 'Email',
                         subtitle: profile.email,
-                        onTap: () {},
+                        trailing: const Icon(
+                          Icons.lock_outline,
+                          size: 16,
+                          color: AppColors.subtitleText,
+                        ),
                       ),
                       _SettingsTile(
                         icon: Icons.vpn_key_outlined,
