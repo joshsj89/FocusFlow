@@ -105,7 +105,9 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
   void loadProfile(TimerProfile profile) {
     _cancelTicker();
     _profile = profile;
-    _remainingSeconds = profile.focusDuration;
+    // Clamp to minimum 60 s — guards against corrupted Firestore documents
+    // that pre-date form validation (focusDuration or breakDuration == 0).
+    _remainingSeconds = profile.focusDuration.clamp(60, 8 * 3600);
     _completedSessions = 0;
     _phase = TimerPhase.focus;
     emit(const TimerInitial());
@@ -151,7 +153,7 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
     _phase = _completedSessions % _profile!.sessionsPerSit == 0
         ? TimerPhase.longBreak
         : TimerPhase.shortBreak;
-    _remainingSeconds = _profile!.breakDuration;
+    _remainingSeconds = _profile!.breakDuration.clamp(60, 2 * 3600);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
 
     // Pick a random suggestion, avoiding the same one as last break

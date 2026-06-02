@@ -79,18 +79,6 @@ class _HomeView extends StatelessWidget {
             }
           },
         ),
-        // Surface session save errors to the user
-        BlocListener<SessionCubit, SessionState>(
-          listenWhen: (_, next) => next is SessionSaveError,
-          listener: (context, state) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text((state as SessionSaveError).message),
-                backgroundColor: Colors.red.shade400,
-              ),
-            );
-          },
-        ),
         // When a session completes, show the mood check-in modal and save
         BlocListener<TimerCubit, TimerState>(
           listenWhen: (_, next) => next is TimerCompleted,
@@ -104,24 +92,26 @@ class _HomeView extends StatelessWidget {
             showDialog<void>(
               context: context,
               barrierDismissible: false,
-              builder: (_) => SessionCompleteSheet(
-                focusMins: (profile?.focusDuration ?? 0) ~/ 60,
-                sessionsCompleted: completed,
-                totalSessions: profile?.sessionsPerSit ?? 4,
-                onDone: (mood) {
-                  final uid = FirebaseAuth.instance.currentUser?.uid;
-                  if (uid != null && profile != null) {
-                    sessionCubit.saveSession(SessionRecord(
+              builder: (_) => BlocProvider.value(
+                value: sessionCubit..reset(),
+                child: SessionCompleteSheet(
+                  focusMins: (profile?.focusDuration ?? 0) ~/ 60,
+                  sessionsCompleted: completed,
+                  totalSessions: profile?.sessionsPerSit ?? 4,
+                  buildRecord: (mood) {
+                    final uid =
+                        FirebaseAuth.instance.currentUser?.uid ?? '';
+                    return SessionRecord(
                       id: '',
                       userId: uid,
-                      timerProfileId: profile.id,
-                      focusDurationSeconds: profile.focusDuration,
+                      timerProfileId: profile?.id ?? '',
+                      focusDurationSeconds: profile?.focusDuration ?? 0,
                       completedSessions: completed,
                       mood: _toMoodRating(mood),
                       completedAt: DateTime.now(),
-                    ));
-                  }
-                },
+                    );
+                  },
+                ),
               ),
             ).then((_) => timerCubit.startBreak());
           },

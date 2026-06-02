@@ -18,6 +18,7 @@ class MusicService extends ChangeNotifier {
   TrackInfo? _currentTrack;
   List<TrackInfo> _tracks = [];
   bool _tracksLoaded = false;
+  int _playGeneration = 0; // incremented on each play() call; lets concurrent calls bail out
 
   TrackInfo? get currentTrack => _currentTrack;
   bool get isPlaying => _player.playing;
@@ -79,19 +80,33 @@ class MusicService extends ChangeNotifier {
   }
 
   Future<void> play(TrackInfo track) async {
-    // Update track immediately so the UI reflects the selection at once,
-    // rather than waiting for all the async audio operations to finish.
+    // Update track immediately so the UI reflects the selection at once.
     _currentTrack = track;
     notifyListeners();
+
+    // Generation counter: if a newer play() call starts while we're mid-load,
+    // we bail out after each await so the latest call always wins cleanly.
+    final generation = ++_playGeneration;
+
     try {
       await _player.stop();
+      if (generation != _playGeneration) return;
+
       await _player.setAsset(track.assetKey);
+      if (generation != _playGeneration) return;
+
       await _player.setLoopMode(LoopMode.one);
+      if (generation != _playGeneration) return;
+
       await _player.play();
+      if (generation != _playGeneration) return;
+
       notifyListeners();
     } catch (_) {
-      _currentTrack = null;
-      notifyListeners();
+      if (generation == _playGeneration) {
+        _currentTrack = null;
+        notifyListeners();
+      }
     }
   }
 
