@@ -6,14 +6,14 @@ class PlaybackControls extends StatelessWidget {
   final bool isPlaying;
   final VoidCallback? onPlayPause;
   final VoidCallback? onRewind;
-  final VoidCallback? onCancel;
+  final VoidCallback? onSkip;
 
   const PlaybackControls({
     super.key,
     required this.isPlaying,
     required this.onPlayPause,
     this.onRewind,
-    this.onCancel,
+    this.onSkip,
   });
 
   @override
@@ -34,9 +34,9 @@ class PlaybackControls extends StatelessWidget {
         ),
         const SizedBox(width: 20),
         _OutlinedControlButton(
-          icon: Icons.close,
+          icon: Icons.skip_next_rounded,
           size: 48,
-          onTap: onCancel,
+          onTap: onSkip,
         ),
       ],
     );

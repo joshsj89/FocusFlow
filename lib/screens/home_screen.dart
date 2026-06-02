@@ -217,9 +217,10 @@ class _HomeView extends StatelessWidget {
                                   ? () =>
                                       context.read<TimerCubit>().resetTimer()
                                   : null,
-                              onCancel: timerState is! TimerInitial
+                              onSkip: timerState is TimerRunning ||
+                                      timerState is TimerPaused
                                   ? () =>
-                                      context.read<TimerCubit>().resetTimer()
+                                      context.read<TimerCubit>().startBreak()
                                   : null,
                             ),
                             const SizedBox(height: 22),
