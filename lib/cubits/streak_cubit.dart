@@ -115,16 +115,28 @@ class StreakCubit extends Cubit<StreakState> {
           );
           badges.add(Badge.fromDefinition(def, {'earned': true, 'earnedAt': now}));
           hasNew = true;
-          NotificationService.showBadgeNotification(
-            title: '🏅 Badge Earned!',
-            body: 'You earned the "${def['title']}" badge!',
-          );
+          // Notification is sent AFTER batch.commit() succeeds (see below)
         } else {
           badges.add(Badge.fromDefinition(def, badgeDocMap[id]));
         }
       }
 
-      if (hasNew) await batch.commit();
+      if (hasNew) {
+        await batch.commit();
+        // Only notify after the write succeeds — prevents duplicate notifications
+        // if the batch fails and loadStreaks() is called again.
+        for (final def in kBadgeDefinitions) {
+          final id = def['id'] as String;
+          final alreadyEarned = badgeDocMap[id]?['earned'] == true;
+          final conditionMet = conditions[id] ?? false;
+          if (!alreadyEarned && conditionMet) {
+            NotificationService.showBadgeNotification(
+              title: '🏅 Badge Earned!',
+              body: 'You earned the "${def['title']}" badge!',
+            );
+          }
+        }
+      }
 
       emit(StreakLoaded(streakData: streakData, badges: badges));
     } catch (_) {

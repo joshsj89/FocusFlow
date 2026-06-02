@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:proximity_sensor/proximity_sensor.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibration/vibration.dart';
+import '../constants/break_suggestions.dart';
 import '../models/timer_profile.dart';
 
 enum TimerPhase { focus, shortBreak, longBreak }
@@ -150,7 +151,7 @@ class TimerCubit extends Cubit<TimerState> {
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
 
     // Pick a random suggestion, avoiding the same one as last break
-    const total = 10; // kBreakSuggestions.length
+    final total = kBreakSuggestions.length;
     int index;
     do {
       index = Random().nextInt(total);
