@@ -247,6 +247,15 @@ class AccountCubit extends Cubit<AccountState> {
       await _users.doc(uid).delete();
       await FirebaseAuth.instance.currentUser!.delete();
       emit(const AccountDeleted());
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'requires-recent-login') {
+        emit(current.copyWith(isSaving: false));
+        emit(const AccountError(
+          'For security, please sign out and sign back in before deleting your account.',
+        ));
+      } else {
+        emit(const AccountError("Couldn't delete account. Try again."));
+      }
     } catch (_) {
       emit(const AccountError("Couldn't delete account. Try again."));
     }

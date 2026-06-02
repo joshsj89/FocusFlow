@@ -79,6 +79,18 @@ class _HomeView extends StatelessWidget {
             }
           },
         ),
+        // Surface session save errors to the user
+        BlocListener<SessionCubit, SessionState>(
+          listenWhen: (_, next) => next is SessionSaveError,
+          listener: (context, state) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text((state as SessionSaveError).message),
+                backgroundColor: Colors.red.shade400,
+              ),
+            );
+          },
+        ),
         // When a session completes, show the mood check-in modal and save
         BlocListener<TimerCubit, TimerState>(
           listenWhen: (_, next) => next is TimerCompleted,

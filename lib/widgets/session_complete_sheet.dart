@@ -34,7 +34,11 @@ class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
+    // PopScope(canPop: false) blocks the Android hardware back button so the
+    // user must explicitly tap Done — prevents session from being silently lost.
+    return PopScope(
+      canPop: false,
+      child: Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       insetPadding: const EdgeInsets.symmetric(horizontal: 40),
@@ -80,7 +84,7 @@ class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 
