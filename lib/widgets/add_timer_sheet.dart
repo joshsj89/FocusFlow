@@ -68,7 +68,14 @@ class TimerFormBody extends StatelessWidget {
                   onClose: () => Navigator.of(context).pop(),
                 ),
                 const SizedBox(height: 20),
-                const SectionLabel(text: 'TIMER NAME'),
+                // Required field indicator
+                Row(children: [
+                  const SectionLabel(text: 'TIMER NAME'),
+                  Text(' *', style: GoogleFonts.openSans(
+                    fontSize: 12, fontWeight: FontWeight.w700,
+                    color: Colors.red.shade400,
+                  )),
+                ]),
                 const SizedBox(height: 8),
                 const FormNameField(),
                 const SizedBox(height: 20),
@@ -153,7 +160,27 @@ class _FormNameFieldState extends State<FormNameField> {
   }
 
   @override
-  Widget build(BuildContext context) => NameField(controller: _controller);
+  Widget build(BuildContext context) {
+    final showError = context
+        .select<TimerFormCubit, bool>((c) => c.state.showNameError);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        NameField(controller: _controller),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'A title is required',
+              style: GoogleFonts.openSans(
+                fontSize: 12,
+                color: Colors.red.shade400,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class ActivityTypeChips extends StatelessWidget {
@@ -251,12 +278,16 @@ class FormConfirmButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final state = context.watch<TimerFormCubit>().state;
     final isSaving = state.status == FormStatus.saving;
-    return ConfirmButton(
-      onPressed: state.isValid && !isSaving
-          ? () => isEdit
-              ? context.read<TimerFormCubit>().submitEdit()
-              : context.read<TimerFormCubit>().submitNew()
-          : null,
+    final enabled = state.isValid && !isSaving;
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.4,
+      child: ConfirmButton(
+        onPressed: enabled
+            ? () => isEdit
+                ? context.read<TimerFormCubit>().submitEdit()
+                : context.read<TimerFormCubit>().submitNew()
+            : null,
+      ),
     );
   }
 }

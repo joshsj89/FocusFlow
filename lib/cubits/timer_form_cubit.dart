@@ -15,6 +15,7 @@ class TimerFormState extends Equatable {
   final int breakDuration;  // seconds
   final int sessionsPerSit;
   final bool isValid;
+  final bool showNameError; // true once name has been touched and left empty
   final FormStatus status;
   final String? errorMessage;
 
@@ -25,6 +26,7 @@ class TimerFormState extends Equatable {
     required this.breakDuration,
     required this.sessionsPerSit,
     required this.isValid,
+    this.showNameError = false,
     required this.status,
     this.errorMessage,
   });
@@ -46,6 +48,7 @@ class TimerFormState extends Equatable {
     int? breakDuration,
     int? sessionsPerSit,
     bool? isValid,
+    bool? showNameError,
     FormStatus? status,
     String? errorMessage,
   }) {
@@ -56,6 +59,7 @@ class TimerFormState extends Equatable {
       breakDuration: breakDuration ?? this.breakDuration,
       sessionsPerSit: sessionsPerSit ?? this.sessionsPerSit,
       isValid: isValid ?? this.isValid,
+      showNameError: showNameError ?? this.showNameError,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
     );
@@ -64,7 +68,7 @@ class TimerFormState extends Equatable {
   @override
   List<Object?> get props => [
         name, activityType, focusDuration, breakDuration,
-        sessionsPerSit, isValid, status, errorMessage,
+        sessionsPerSit, isValid, showNameError, status, errorMessage,
       ];
 }
 
@@ -90,6 +94,8 @@ class TimerFormCubit extends Cubit<TimerFormState> {
   void nameChanged(String value) => emit(state.copyWith(
         name: value,
         isValid: value.trim().isNotEmpty,
+        // Show error only after the user has interacted and left the field empty
+        showNameError: state.name.isNotEmpty && value.trim().isEmpty,
       ));
 
   void activityTypeSelected(String type) =>
