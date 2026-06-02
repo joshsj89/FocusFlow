@@ -217,7 +217,7 @@ class _HomeView extends StatelessWidget {
                               onSkip: timerState is TimerRunning ||
                                       timerState is TimerPaused
                                   ? () =>
-                                      context.read<TimerCubit>().startBreak()
+                                      context.read<TimerCubit>().incrementSession() // increment session and start break if timer is active
                                   : null,
                             ),
                             const SizedBox(height: 22),

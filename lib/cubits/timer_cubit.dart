@@ -135,6 +135,11 @@ class TimerCubit extends Cubit<TimerState> {
     ));
   }
 
+  void incrementSession() { // Called by the UI when skip button is pressed
+    _completedSessions++;
+    startBreak();
+  }
+
   // Called by the UI after the session complete modal is dismissed
   void startBreak() {
     if (_profile == null) return;
