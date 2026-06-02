@@ -127,54 +127,12 @@ class _StreakContent extends StatelessWidget {
             const SizedBox(height: 8),
             ...badges.map((b) => _BadgeRow(badge: b)),
           ],
-          const SizedBox(height: 24),
-          Center(
-            child: TextButton(
-              onPressed: () => _confirmClear(context),
-              child: Text(
-                'Clear streak',
-                style: GoogleFonts.openSans(
-                  color: AppColors.subtitleText,
-                  fontSize: 13,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  void _confirmClear(BuildContext context) {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Reset your streak?',
-            style: GoogleFonts.openSans(fontWeight: FontWeight.w600)),
-        content: const Text('This cannot be undone.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              // streak is computed from sessions — clearing sessions is out of scope;
-              // for now this simply reloads to reflect current state
-              context.read<StreakCubit>().loadStreaks();
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Reset'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  static String _monthName(int month) {
+static String _monthName(int month) {
     const names = [
       'January', 'February', 'March', 'April',
       'May', 'June', 'July', 'August',

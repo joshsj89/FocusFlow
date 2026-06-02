@@ -32,6 +32,7 @@ class MusicService extends ChangeNotifier {
     'vibehorn-motivational-jazz-beat-479216.mp3': 'Jazz Beat',
     'u_iof4lbuflq-jazz-cafe-crowd-319309.mp3': 'Jazz Café',
     'liecio-calming-rain-257596.mp3': 'Calming Rain',
+    'mdjahidhossain-birds-nature-relax-sounds-110839.mp3': 'Birds & Nature',
   };
 
   static String _toDisplayName(String assetKey) {
