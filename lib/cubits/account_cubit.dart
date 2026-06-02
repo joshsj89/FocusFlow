@@ -69,34 +69,72 @@ class AccountCubit extends Cubit<AccountState> {
 
   Future<void> loadProfile() async {
     emit(const AccountLoading());
+    if (FirebaseAuth.instance.currentUser == null) {
+      emit(const AccountSignedOut());
+      return;
+    }
+
+    // Reload to pick up the latest auth state (e.g. displayName set after sign-up)
     try {
-      final user = FirebaseAuth.instance.currentUser;
-      if (user == null) {
-        emit(const AccountSignedOut());
-        return;
-      }
+      await FirebaseAuth.instance.currentUser!.reload();
+    } catch (_) {}
+
+    // Re-read after reload
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      emit(const AccountSignedOut());
+      return;
+    }
+
+    try {
       final doc = await _users.doc(user.uid).get();
       final data = doc.data();
+
       if (data == null) {
-        // First login create the user document
+        // First login — create the Firestore document
         final newProfile = UserProfile(
           uid: user.uid,
           displayName: user.displayName ?? '',
           email: user.email ?? '',
-          memberSince: DateTime.now(),
+          memberSince: user.metadata.creationTime ?? DateTime.now(),
           appleHealthSyncEnabled: false,
         );
-
         await _users
             .doc(user.uid)
             .set(newProfile.toMap(), SetOptions(merge: true));
         emit(AccountLoaded(profile: newProfile));
       } else {
-        emit(AccountLoaded(profile: UserProfile.fromMap(user.uid, data)));
+        var profile = UserProfile.fromMap(user.uid, data);
+
+        // Backfill empty fields from Firebase Auth — happens when the
+        // Firestore document was written before updateDisplayName completed.
+        final needsUpdate =
+            (profile.displayName.isEmpty && (user.displayName?.isNotEmpty ?? false)) ||
+            (profile.email.isEmpty && (user.email?.isNotEmpty ?? false));
+
+        if (needsUpdate) {
+          profile = profile.copyWith(
+            displayName: profile.displayName.isEmpty ? (user.displayName ?? '') : profile.displayName,
+            email: profile.email.isEmpty ? (user.email ?? '') : profile.email,
+          );
+          await _users.doc(user.uid).update({
+            if (profile.displayName.isNotEmpty) 'displayName': profile.displayName,
+            if (profile.email.isNotEmpty) 'email': profile.email,
+          });
+        }
+
+        emit(AccountLoaded(profile: profile));
       }
-    } catch (e, stack) {
-      debugPrint('AccountCubit.loadProfile error: $e\n$stack');
-      emit(const AccountError("Couldn't load profile"));
+    } catch (e) {
+      debugPrint('AccountCubit.loadProfile error: $e');
+      // Fallback to Firebase Auth so the screen still loads
+      emit(AccountLoaded(profile: UserProfile(
+        uid: user.uid,
+        displayName: user.displayName ?? '',
+        email: user.email ?? '',
+        memberSince: user.metadata.creationTime ?? DateTime.now(),
+        appleHealthSyncEnabled: false,
+      )));
     }
   }
 
