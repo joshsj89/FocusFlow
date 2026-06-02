@@ -6,26 +6,34 @@ import '../services/timer_service.dart';
 
 enum FormStatus { idle, saving, saved, error }
 
+// Preset sets — used to detect whether an existing profile uses custom values
+const kFocusDurationPresets = {900, 1500, 2700, 3600};
+const kActivityTypePresets = {
+  'studying', 'coding', 'reading', 'exercise', 'research'
+};
+
 // ── State ─────────────────────────────────────────────────────────────────────
 
 class TimerFormState extends Equatable {
   final String name;
-  final String activityType;
-  final int focusDuration;  // seconds
-  final int breakDuration;  // seconds
+  final String activityType;   // preset id OR the custom name when activityIsCustom
+  final bool activityIsCustom; // true when "Other" chip is selected
+  final int focusDuration;     // seconds
+  final bool focusDurationIsCustom; // true when not a preset chip
+  final int breakDuration;     // seconds
   final int sessionsPerSit;
-  final bool isValid;
-  final bool showNameError; // true once name has been touched and left empty
+  final bool showNameError;
   final FormStatus status;
   final String? errorMessage;
 
   const TimerFormState({
     required this.name,
     required this.activityType,
+    this.activityIsCustom = false,
     required this.focusDuration,
+    this.focusDurationIsCustom = false,
     required this.breakDuration,
     required this.sessionsPerSit,
-    required this.isValid,
     this.showNameError = false,
     required this.status,
     this.errorMessage,
@@ -37,17 +45,25 @@ class TimerFormState extends Equatable {
         focusDuration: 1500, // 25 min
         breakDuration: 300,  // 5 min
         sessionsPerSit: 4,
-        isValid: false,
         status: FormStatus.idle,
       );
+
+  // Computed — always consistent, no manual tracking needed
+  bool get isValid {
+    if (name.trim().isEmpty) return false;
+    if (focusDuration <= 0) return false;
+    if (activityIsCustom && activityType.trim().isEmpty) return false;
+    return true;
+  }
 
   TimerFormState copyWith({
     String? name,
     String? activityType,
+    bool? activityIsCustom,
     int? focusDuration,
+    bool? focusDurationIsCustom,
     int? breakDuration,
     int? sessionsPerSit,
-    bool? isValid,
     bool? showNameError,
     FormStatus? status,
     String? errorMessage,
@@ -55,10 +71,12 @@ class TimerFormState extends Equatable {
     return TimerFormState(
       name: name ?? this.name,
       activityType: activityType ?? this.activityType,
+      activityIsCustom: activityIsCustom ?? this.activityIsCustom,
       focusDuration: focusDuration ?? this.focusDuration,
+      focusDurationIsCustom:
+          focusDurationIsCustom ?? this.focusDurationIsCustom,
       breakDuration: breakDuration ?? this.breakDuration,
       sessionsPerSit: sessionsPerSit ?? this.sessionsPerSit,
-      isValid: isValid ?? this.isValid,
       showNameError: showNameError ?? this.showNameError,
       status: status ?? this.status,
       errorMessage: errorMessage ?? this.errorMessage,
@@ -67,8 +85,9 @@ class TimerFormState extends Equatable {
 
   @override
   List<Object?> get props => [
-        name, activityType, focusDuration, breakDuration,
-        sessionsPerSit, isValid, showNameError, status, errorMessage,
+        name, activityType, activityIsCustom, focusDuration,
+        focusDurationIsCustom, breakDuration, sessionsPerSit,
+        showNameError, status, errorMessage,
       ];
 }
 
@@ -81,31 +100,69 @@ class TimerFormCubit extends Cubit<TimerFormState> {
       : _originalProfile = profile,
         super(TimerFormState(
           name: profile.name,
+          // If the stored activity isn't a preset, it's a custom name
           activityType: profile.activityType,
+          activityIsCustom:
+              !kActivityTypePresets.contains(profile.activityType),
           focusDuration: profile.focusDuration,
+          focusDurationIsCustom:
+              !kFocusDurationPresets.contains(profile.focusDuration),
           breakDuration: profile.breakDuration,
           sessionsPerSit: profile.sessionsPerSit,
-          isValid: true,
           status: FormStatus.idle,
         ));
 
   TimerProfile? _originalProfile;
 
+  // ── Name ────────────────────────────────────────────────────────────────────
+
   void nameChanged(String value) => emit(state.copyWith(
         name: value,
-        isValid: value.trim().isNotEmpty,
-        // Show error only after the user has interacted and left the field empty
         showNameError: state.name.isNotEmpty && value.trim().isEmpty,
       ));
 
-  void activityTypeSelected(String type) =>
-      emit(state.copyWith(activityType: type));
+  // ── Activity type ────────────────────────────────────────────────────────────
 
-  void focusDurationSelected(int seconds) =>
-      emit(state.copyWith(focusDuration: seconds));
+  void activityTypeSelected(String type) {
+    if (type == 'other') {
+      // Switch to custom mode — clear any previous custom name
+      emit(state.copyWith(activityIsCustom: true, activityType: ''));
+    } else {
+      emit(state.copyWith(activityIsCustom: false, activityType: type));
+    }
+  }
+
+  void customActivityNameChanged(String name) {
+    // Only callable when activityIsCustom is true
+    emit(state.copyWith(activityType: name));
+  }
+
+  // ── Focus duration ───────────────────────────────────────────────────────────
+
+  void focusDurationSelected(int seconds) => emit(state.copyWith(
+        focusDuration: seconds,
+        focusDurationIsCustom: false,
+      ));
+
+  void customFocusDurationSet(int hours, int minutes) {
+    final seconds = (hours * 3600) + (minutes * 60);
+    emit(state.copyWith(
+      focusDuration: seconds,
+      focusDurationIsCustom: true,
+    ));
+  }
+
+  void focusDurationCustomActivated() => emit(state.copyWith(
+        focusDurationIsCustom: true,
+        // Keep current focusDuration so the h/m fields pre-fill
+      ));
+
+  // ── Break duration ───────────────────────────────────────────────────────────
 
   void breakDurationSelected(int seconds) =>
       emit(state.copyWith(breakDuration: seconds));
+
+  // ── Sessions ─────────────────────────────────────────────────────────────────
 
   void sessionsIncremented() => emit(state.copyWith(
         sessionsPerSit: (state.sessionsPerSit + 1).clamp(1, 8),
@@ -114,6 +171,8 @@ class TimerFormCubit extends Cubit<TimerFormState> {
   void sessionsDecremented() => emit(state.copyWith(
         sessionsPerSit: (state.sessionsPerSit - 1).clamp(1, 8),
       ));
+
+  // ── Submit ───────────────────────────────────────────────────────────────────
 
   Future<void> submitNew() async {
     if (!state.isValid) return;
@@ -124,7 +183,7 @@ class TimerFormCubit extends Cubit<TimerFormState> {
       await TimerService.addTimer(
         uid,
         name: state.name.trim(),
-        activityType: state.activityType,
+        activityType: state.activityType.trim(),
         focusDuration: state.focusDuration,
         breakDuration: state.breakDuration,
         sessionsPerSit: state.sessionsPerSit,
@@ -146,7 +205,7 @@ class TimerFormCubit extends Cubit<TimerFormState> {
       if (uid == null) throw Exception('Not authenticated');
       final updated = _originalProfile!.copyWith(
         name: state.name.trim(),
-        activityType: state.activityType,
+        activityType: state.activityType.trim(),
         focusDuration: state.focusDuration,
         breakDuration: state.breakDuration,
         sessionsPerSit: state.sessionsPerSit,

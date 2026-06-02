@@ -188,19 +188,97 @@ class ActivityTypeChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = context
+    final activityType = context
         .select<TimerFormCubit, String>((c) => c.state.activityType);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _kActivityTypes
-          .map((t) => PresetPill(
-                label: t.$2,
-                selected: selected == t.$1,
-                onTap: () =>
-                    context.read<TimerFormCubit>().activityTypeSelected(t.$1),
-              ))
-          .toList(),
+    final isCustom = context
+        .select<TimerFormCubit, bool>((c) => c.state.activityIsCustom);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            // Preset activity chips — deselected when custom is active
+            ..._kActivityTypes
+                .where((t) => t.$1 != 'other')
+                .map((t) => PresetPill(
+                      label: t.$2,
+                      selected: !isCustom && activityType == t.$1,
+                      onTap: () => context
+                          .read<TimerFormCubit>()
+                          .activityTypeSelected(t.$1),
+                    )),
+            // Other chip — activates custom name input
+            PresetPill(
+              label: 'Other',
+              selected: isCustom,
+              onTap: () =>
+                  context.read<TimerFormCubit>().activityTypeSelected('other'),
+            ),
+          ],
+        ),
+        if (isCustom) ...[
+          const SizedBox(height: 10),
+          _CustomActivityField(),
+        ],
+      ],
+    );
+  }
+}
+
+class _CustomActivityField extends StatefulWidget {
+  const _CustomActivityField();
+
+  @override
+  State<_CustomActivityField> createState() => _CustomActivityFieldState();
+}
+
+class _CustomActivityFieldState extends State<_CustomActivityField> {
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    // Pre-fill with existing custom name if editing
+    _controller = TextEditingController(
+        text: context.read<TimerFormCubit>().state.activityType);
+    _controller.addListener(() => context
+        .read<TimerFormCubit>()
+        .customActivityNameChanged(_controller.text));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: _controller,
+      maxLength: 30,
+      autofocus: true,
+      textCapitalization: TextCapitalization.words,
+      style: GoogleFonts.openSans(fontSize: 14, color: AppColors.darkNavy),
+      decoration: InputDecoration(
+        hintText: 'Name your activity…',
+        hintStyle:
+            GoogleFonts.openSans(fontSize: 13, color: AppColors.subtitleText),
+        counterText: '',
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.cardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+        ),
+      ),
     );
   }
 }
@@ -210,20 +288,130 @@ class FocusDurationChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = context
-        .select<TimerFormCubit, int>((c) => c.state.focusDuration);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _kFocusOptions
-          .map((o) => PresetPill(
-                label: o.$2,
-                selected: selected == o.$1,
-                onTap: () => context
-                    .read<TimerFormCubit>()
-                    .focusDurationSelected(o.$1),
-              ))
-          .toList(),
+    final focusDuration =
+        context.select<TimerFormCubit, int>((c) => c.state.focusDuration);
+    final isCustom = context
+        .select<TimerFormCubit, bool>((c) => c.state.focusDurationIsCustom);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ..._kFocusOptions.map((o) => PresetPill(
+                  label: o.$2,
+                  selected: !isCustom && focusDuration == o.$1,
+                  onTap: () => context
+                      .read<TimerFormCubit>()
+                      .focusDurationSelected(o.$1),
+                )),
+            PresetPill(
+              label: 'Custom',
+              selected: isCustom,
+              onTap: () => context
+                  .read<TimerFormCubit>()
+                  .focusDurationCustomActivated(),
+            ),
+          ],
+        ),
+        if (isCustom) ...[
+          const SizedBox(height: 10),
+          _CustomFocusPicker(),
+        ],
+      ],
+    );
+  }
+}
+
+class _CustomFocusPicker extends StatefulWidget {
+  const _CustomFocusPicker();
+
+  @override
+  State<_CustomFocusPicker> createState() => _CustomFocusPickerState();
+}
+
+class _CustomFocusPickerState extends State<_CustomFocusPicker> {
+  late final TextEditingController _hoursCtrl;
+  late final TextEditingController _minsCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = context.read<TimerFormCubit>().state.focusDuration;
+    _hoursCtrl =
+        TextEditingController(text: (current ~/ 3600).toString());
+    _minsCtrl =
+        TextEditingController(text: ((current % 3600) ~/ 60).toString());
+    _hoursCtrl.addListener(_onChanged);
+    _minsCtrl.addListener(_onChanged);
+  }
+
+  void _onChanged() {
+    final hours = int.tryParse(_hoursCtrl.text) ?? 0;
+    final mins = (int.tryParse(_minsCtrl.text) ?? 0).clamp(0, 59);
+    context.read<TimerFormCubit>().customFocusDurationSet(hours, mins);
+  }
+
+  @override
+  void dispose() {
+    _hoursCtrl.dispose();
+    _minsCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: _TimeField(controller: _hoursCtrl, label: 'hrs', max: 8)),
+        const SizedBox(width: 12),
+        Expanded(child: _TimeField(controller: _minsCtrl, label: 'min', max: 59)),
+      ],
+    );
+  }
+}
+
+class _TimeField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final int max;
+
+  const _TimeField(
+      {required this.controller, required this.label, required this.max});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller,
+      keyboardType: TextInputType.number,
+      textAlign: TextAlign.center,
+      style: GoogleFonts.openSans(fontSize: 15, color: AppColors.darkNavy),
+      decoration: InputDecoration(
+        hintText: '0',
+        suffixText: label,
+        suffixStyle:
+            GoogleFonts.openSans(fontSize: 13, color: AppColors.subtitleText),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.cardBorder),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+        ),
+      ),
+      onChanged: (v) {
+        final n = int.tryParse(v);
+        if (n != null && n > max) {
+          controller.text = max.toString();
+          controller.selection = TextSelection.collapsed(
+              offset: controller.text.length);
+        }
+      },
     );
   }
 }
