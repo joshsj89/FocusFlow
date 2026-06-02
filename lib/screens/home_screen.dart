@@ -116,18 +116,6 @@ class _HomeView extends StatelessWidget {
               if (timerState is TimerOnBreak) {
                 return Scaffold(
                   backgroundColor: Colors.white,
-                  bottomNavigationBar: _AddTimerBar(
-                    onAdd: () => showModalBottomSheet<void>(
-                      context: context,
-                      isScrollControlled: true,
-                      isDismissible: true,
-                      shape: const RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.vertical(top: Radius.circular(24)),
-                      ),
-                      builder: (_) => const AddTimerSheet(),
-                    ),
-                  ),
                   body: Column(
                     children: [
                       const _BreakHeader(),
