@@ -15,14 +15,19 @@ class UserProfile {
     required this.appleHealthSyncEnabled,
   });
 
-  factory UserProfile.fromMap(String uid, Map<String, dynamic> map) {
+  factory UserProfile.fromMap(
+    String uid,
+    Map<String, dynamic> map, {
+    DateTime? fallbackMemberSince,
+  }) {
+    final rawMs = map['memberSince'];
     return UserProfile(
       uid: uid,
       displayName: map['displayName'] as String? ?? '',
       email: map['email'] as String? ?? '',
-      memberSince: map['memberSince'] != null
-          ? (map['memberSince'] as Timestamp).toDate()
-          : DateTime.now(),
+      memberSince: rawMs is Timestamp
+          ? rawMs.toDate()
+          : (fallbackMemberSince ?? DateTime.now()),
       appleHealthSyncEnabled: map['appleHealthSyncEnabled'] as bool? ?? false,
     );
   }

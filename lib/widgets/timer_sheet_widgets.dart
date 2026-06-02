@@ -67,10 +67,12 @@ class NameField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
+      maxLength: 30,
       style: GoogleFonts.openSans(fontSize: 14, color: AppColors.darkNavy),
       decoration: InputDecoration(
         hintText: 'e.g. Study, Focus, Design...',
         hintStyle: GoogleFonts.openSans(fontSize: 13, color: AppColors.subtitleText),
+        counterText: '',
         contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10),

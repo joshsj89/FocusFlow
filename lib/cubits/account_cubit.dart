@@ -104,7 +104,11 @@ class AccountCubit extends Cubit<AccountState> {
             .set(newProfile.toMap(), SetOptions(merge: true));
         emit(AccountLoaded(profile: newProfile));
       } else {
-        var profile = UserProfile.fromMap(user.uid, data);
+        var profile = UserProfile.fromMap(
+          user.uid,
+          data,
+          fallbackMemberSince: user.metadata.creationTime,
+        );
 
         // Backfill empty fields from Firebase Auth — happens when the
         // Firestore document was written before updateDisplayName completed.
