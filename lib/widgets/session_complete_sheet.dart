@@ -8,12 +8,14 @@ class SessionCompleteSheet extends StatefulWidget {
   final int focusMins;
   final int sessionsCompleted;
   final int totalSessions;
+  final void Function(Mood? mood) onDone;
 
   const SessionCompleteSheet({
     super.key,
     required this.focusMins,
     required this.sessionsCompleted,
     required this.totalSessions,
+    required this.onDone,
   });
 
   @override
@@ -69,7 +71,10 @@ class _SessionCompleteSheetState extends State<SessionCompleteSheet> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                _DoneButton(onPressed: () => Navigator.of(context).pop(_selectedMood)),
+                _DoneButton(onPressed: () {
+                  widget.onDone(_selectedMood);
+                  Navigator.of(context).pop();
+                }),
               ],
             ),
           ),

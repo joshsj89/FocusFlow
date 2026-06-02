@@ -142,32 +142,40 @@ class _TrackTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-        child: Row(
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? AppColors.purple : Colors.grey[400],
-              size: 22,
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                label,
-                style: GoogleFonts.openSans(
-                  fontSize: 15,
-                  fontWeight:
-                      isSelected ? FontWeight.w600 : FontWeight.w400,
-                  color: isSelected ? AppColors.purple : AppColors.darkNavy,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: Material(
+        color: isSelected ? AppColors.purple : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? Colors.white : AppColors.subtitleText,
+                  size: 20,
                 ),
-              ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: GoogleFonts.openSans(
+                      fontSize: 15,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      color: isSelected ? Colors.white : AppColors.darkNavy,
+                    ),
+                  ),
+                ),
+                if (isSelected)
+                  const Icon(Icons.check_circle_rounded,
+                      color: Colors.white, size: 20),
+              ],
             ),
-            if (isSelected)
-              const Icon(Icons.check_rounded, color: AppColors.purple, size: 20),
-          ],
+          ),
         ),
       ),
     );

@@ -156,7 +156,14 @@ class TimerCubit extends Cubit<TimerState> {
     _cancelTicker();
     _phase = TimerPhase.focus;
     _remainingSeconds = _profile!.focusDuration;
-    emit(const TimerInitial());
+    // Auto-start the next focus session rather than returning to idle
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    emit(TimerRunning(
+      remainingSeconds: _remainingSeconds,
+      totalSeconds: _profile!.focusDuration,
+      completedSessions: _completedSessions,
+      phase: _phase,
+    ));
   }
 
   void _tick() {

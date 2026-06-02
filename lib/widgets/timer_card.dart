@@ -17,27 +17,35 @@ class TimerCard extends StatelessWidget {
     this.onTap,
   });
 
+  void _openEdit(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      isDismissible: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => EditTimerSheet(timer: timer),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnimatedPress(
       pressedScale: 0.97,
-      onTap: onTap ??
-          () => showDialog(
-                context: context,
-                builder: (_) => EditTimerSheet(timer: timer),
-              ),
+      onTap: onTap ?? () => _openEdit(context),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.only(left: 16, top: 14, bottom: 14, right: 8),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.cardBorder),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
-              color: const Color.fromRGBO(0, 0, 0, 0.04),
+              color: Color.fromRGBO(0, 0, 0, 0.04),
               blurRadius: 6,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -75,10 +83,20 @@ class TimerCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.subtitleText,
-              size: 20,
+            // Edit icon — always accessible regardless of tap mode
+            GestureDetector(
+              onTap: () => _openEdit(context),
+              behavior: HitTestBehavior.opaque,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Icon(
+                  Icons.edit_rounded,
+                  size: 16,
+                  color: isActive
+                      ? AppColors.purple
+                      : AppColors.subtitleText,
+                ),
+              ),
             ),
           ],
         ),

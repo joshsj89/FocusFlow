@@ -1,7 +1,11 @@
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/user_profile.dart';
 import '../services/notification_service.dart';
 
@@ -49,6 +53,13 @@ class AccountError extends AccountState {
   List<Object?> get props => [message];
 }
 
+class AccountDataExported extends AccountState {
+  final bool copiedToClipboard; // true on web, false on mobile (share sheet used)
+  const AccountDataExported({required this.copiedToClipboard});
+  @override
+  List<Object?> get props => [copiedToClipboard];
+}
+
 
 class AccountCubit extends Cubit<AccountState> {
   AccountCubit() : super(const AccountLoading());
@@ -83,7 +94,8 @@ class AccountCubit extends Cubit<AccountState> {
       } else {
         emit(AccountLoaded(profile: UserProfile.fromMap(user.uid, data)));
       }
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('AccountCubit.loadProfile error: $e\n$stack');
       emit(const AccountError("Couldn't load profile"));
     }
   }
@@ -123,6 +135,54 @@ class AccountCubit extends Cubit<AccountState> {
               .copyWith(appleHealthSyncEnabled: !enabled)));
       rethrow;
     }
+  }
+
+  Future<void> requestDataExport() async {
+    final current = _loaded;
+    if (current == null) return;
+    emit(current.copyWith(isSaving: true));
+    try {
+      final uid = current.profile.uid;
+      final results = await Future.wait([
+        _users.doc(uid).collection('timers').get(),
+        _users.doc(uid).collection('sessions').get(),
+      ]);
+
+      final export = {
+        'profile': {
+          'displayName': current.profile.displayName,
+          'email': current.profile.email,
+          'memberSince': current.profile.memberSince.toIso8601String(),
+          'appleHealthSyncEnabled': current.profile.appleHealthSyncEnabled,
+        },
+        'timers': results[0].docs.map((d) => _sanitize({...d.data(), 'id': d.id})).toList(),
+        'sessions': results[1].docs.map((d) => _sanitize({...d.data(), 'id': d.id})).toList(),
+      };
+
+      final json = const JsonEncoder.withIndent('  ').convert(export);
+
+      if (kIsWeb) {
+        await Clipboard.setData(ClipboardData(text: json));
+        emit(const AccountDataExported(copiedToClipboard: true));
+      } else {
+        await Share.share(json, subject: 'FocusFlow Data Export');
+        emit(const AccountDataExported(copiedToClipboard: false));
+      }
+      // Reload profile so the screen returns to AccountLoaded
+      await loadProfile();
+    } catch (_) {
+      emit(current.copyWith(isSaving: false));
+    }
+  }
+
+  // Converts Firestore Timestamps to ISO strings so they survive JSON encoding
+  static dynamic _sanitize(dynamic value) {
+    if (value is Timestamp) return value.toDate().toIso8601String();
+    if (value is Map) {
+      return value.map((k, v) => MapEntry(k.toString(), _sanitize(v)));
+    }
+    if (value is List) return value.map(_sanitize).toList();
+    return value;
   }
 
   Future<void> signOut() async {

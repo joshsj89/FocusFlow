@@ -24,6 +24,24 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Rebuild whenever any field changes so _canSubmit re-evaluates
+    _emailController.addListener(_rebuild);
+    _passwordController.addListener(_rebuild);
+    _nameController.addListener(_rebuild);
+  }
+
+  void _rebuild() => setState(() {});
+
+  bool get _canSubmit {
+    final emailOk = _emailController.text.trim().isNotEmpty;
+    final passwordOk = _passwordController.text.isNotEmpty;
+    final nameOk = _nameController.text.trim().isNotEmpty;
+    return _isSignUp ? (nameOk && emailOk && passwordOk) : (emailOk && passwordOk);
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -163,6 +181,46 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
+                if (!_isSignUp) ...[
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () async {
+                        final email = _emailController.text.trim();
+                        if (email.isEmpty) {
+                          setState(() =>
+                              _errorMessage = 'Enter your email first.');
+                          return;
+                        }
+                        final messenger = ScaffoldMessenger.of(context);
+                        try {
+                          await FirebaseAuth.instance
+                              .sendPasswordResetEmail(email: email);
+                          if (!mounted) return;
+                          setState(() => _errorMessage = null);
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                  'Password reset email sent to $email'),
+                            ),
+                          );
+                        } on FirebaseAuthException catch (e) {
+                          if (mounted) {
+                            setState(() =>
+                                _errorMessage = _friendlyError(e.code));
+                          }
+                        }
+                      },
+                      child: Text(
+                        'Forgot password?',
+                        style: GoogleFonts.openSans(
+                          fontSize: 13,
+                          color: AppColors.purple,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
                 if (_errorMessage != null) ...[
                   const SizedBox(height: 14),
                   Container(
@@ -184,14 +242,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
                 const SizedBox(height: 28),
-                AnimatedPress(
-                  onTap: _loading ? null : _submit,
+                Opacity(
+                  opacity: (_canSubmit && !_loading) ? 1.0 : 0.45,
+                  child: AnimatedPress(
+                  onTap: (_canSubmit && !_loading) ? _submit : null,
                   child: Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: _loading
-                          ? AppColors.teal.withAlpha(160)
-                          : AppColors.teal,
+                      color: AppColors.teal,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -220,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                     ),
+                  ),
                   ),
                 ),
                 const SizedBox(height: 20),

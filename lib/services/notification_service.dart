@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../firebase_options.dart';
 
 
@@ -21,12 +22,22 @@ class NotificationService {
       GlobalKey<ScaffoldMessengerState>();
 
   static final FirebaseMessaging _messaging = FirebaseMessaging.instance;
+  static final FlutterLocalNotificationsPlugin _local =
+      FlutterLocalNotificationsPlugin();
   static String? _currentToken;
   static bool _initialized = false;
 
   static Future<void> init() async {
     if (_initialized) return;
     _initialized = true;
+
+    // Local notifications (badge earned, etc.)
+    await _local.initialize(
+      const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+        iOS: DarwinInitializationSettings(),
+      ),
+    );
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
@@ -59,6 +70,29 @@ class NotificationService {
     FirebaseAuth.instance.authStateChanges().listen((user) {
       if (user != null) syncTokenForUser(user.uid);
     });
+  }
+
+  /// Shows a local push-style notification — used when a badge is earned.
+  static Future<void> showBadgeNotification({
+    required String title,
+    required String body,
+  }) async {
+    await _local.show(
+      title.hashCode.abs() % 10000,
+      title,
+      body,
+      const NotificationDetails(
+        android: AndroidNotificationDetails(
+          'focusflow_badges',
+          'Badge Notifications',
+          channelDescription: 'Shown when you earn a new badge',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+        ),
+        iOS: DarwinNotificationDetails(),
+      ),
+    );
   }
 
   /// Persist this device's FCM token to the user's Firestore doc.
