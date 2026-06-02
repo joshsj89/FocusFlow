@@ -480,7 +480,7 @@ class _TopActionIcons extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.end,
         children: [
           IconButton(
-            icon: const Icon(Icons.star_border_rounded),
+            icon: const Icon(Icons.local_fire_department_rounded),
             color: AppColors.purple,
             onPressed: onAchievements,
           ),
