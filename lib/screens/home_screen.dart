@@ -535,9 +535,9 @@ class _BreakBody extends StatelessWidget {
 
   const _BreakBody({required this.state, this.profile});
 
-  // Stable pick: same break duration → same suggestion throughout the break
+  // Index is chosen once per break in TimerCubit.startBreak() — random, never repeats consecutively
   BreakSuggestion get _suggestion =>
-      kBreakSuggestions[state.totalSeconds % kBreakSuggestions.length];
+      kBreakSuggestions[state.suggestionIndex % kBreakSuggestions.length];
 
   @override
   Widget build(BuildContext context) {

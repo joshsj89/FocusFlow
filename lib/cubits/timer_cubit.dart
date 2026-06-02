@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' show Random, sqrt;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -68,15 +68,18 @@ class TimerOnBreak extends TimerState {
   final int remainingSeconds;
   final int totalSeconds;
   final String nextTimerName;
+  final int suggestionIndex; // index into kBreakSuggestions, picked once per break
 
   const TimerOnBreak({
     required this.remainingSeconds,
     required this.totalSeconds,
     required this.nextTimerName,
+    required this.suggestionIndex,
   });
 
   @override
-  List<Object?> get props => [remainingSeconds, totalSeconds, nextTimerName];
+  List<Object?> get props =>
+      [remainingSeconds, totalSeconds, nextTimerName, suggestionIndex];
 }
 
 // ── Cubit ─────────────────────────────────────────────────────────────────────
@@ -89,6 +92,7 @@ class TimerCubit extends Cubit<TimerState> {
   int _remainingSeconds = 0;
   int _completedSessions = 0;
   TimerPhase _phase = TimerPhase.focus;
+  int _lastSuggestionIndex = -1;
   StreamSubscription<UserAccelerometerEvent>? _motionSub;
   StreamSubscription<dynamic>? _proximitySub;
   bool _phoneIsDown = false;
@@ -144,10 +148,20 @@ class TimerCubit extends Cubit<TimerState> {
         : TimerPhase.shortBreak;
     _remainingSeconds = _profile!.breakDuration;
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+
+    // Pick a random suggestion, avoiding the same one as last break
+    const total = 10; // kBreakSuggestions.length
+    int index;
+    do {
+      index = Random().nextInt(total);
+    } while (index == _lastSuggestionIndex && total > 1);
+    _lastSuggestionIndex = index;
+
     emit(TimerOnBreak(
       remainingSeconds: _remainingSeconds,
       totalSeconds: _profile!.breakDuration,
       nextTimerName: _profile!.name,
+      suggestionIndex: index,
     ));
   }
 
@@ -195,6 +209,7 @@ class TimerCubit extends Cubit<TimerState> {
           remainingSeconds: _remainingSeconds,
           totalSeconds: _currentTotal,
           nextTimerName: _profile!.name,
+          suggestionIndex: _lastSuggestionIndex,
         ));
       }
     }
