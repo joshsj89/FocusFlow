@@ -564,7 +564,18 @@ class _BreakBody extends StatelessWidget {
           _SuggestionCard(suggestion: _suggestion),
           const SizedBox(height: 12),
           _UpcomingSessionCard(profile: profile),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+          SoundSelectorBar(
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (_) => const SoundPickerSheet(),
+            ),
+          ),
+          const SizedBox(height: 16),
           Column(
             children: [
               TextButton(
