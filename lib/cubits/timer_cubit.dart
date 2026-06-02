@@ -10,8 +10,6 @@ import '../models/timer_profile.dart';
 
 enum TimerPhase { focus, shortBreak, longBreak }
 
-// ── States ────────────────────────────────────────────────────────────────────
-
 abstract class TimerState extends Equatable {
   const TimerState();
   @override
@@ -79,7 +77,6 @@ class TimerOnBreak extends TimerState {
   List<Object?> get props => [remainingSeconds, totalSeconds, nextTimerName];
 }
 
-// ── Cubit ─────────────────────────────────────────────────────────────────────
 
 class TimerCubit extends Cubit<TimerState> {
   TimerCubit() : super(const TimerInitial());
@@ -136,8 +133,10 @@ class TimerCubit extends Cubit<TimerState> {
   }
 
   void incrementSession() { // Called by the UI when skip button is pressed
+    if (_profile == null) return;
+    _cancelTicker();
     _completedSessions++;
-    startBreak();
+    emit(TimerCompleted(completedSessions: _completedSessions));
   }
 
   // Called by the UI after the session complete modal is dismissed
@@ -159,8 +158,7 @@ class TimerCubit extends Cubit<TimerState> {
   void skipBreak() {
     if (state is! TimerOnBreak) return;
     _cancelTicker();
-    _phase = TimerPhase.focus;
-    _remainingSeconds = _profile!.focusDuration;
+    _startNextFocus();
     // Auto-start the next focus session rather than returning to idle
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
     emit(TimerRunning(
@@ -169,6 +167,14 @@ class TimerCubit extends Cubit<TimerState> {
       completedSessions: _completedSessions,
       phase: _phase,
     ));
+  }
+
+  void _startNextFocus() {
+    if (_completedSessions >= _profile!.sessionsPerSit) {
+      _completedSessions = 0;
+    }
+    _phase = TimerPhase.focus;
+    _remainingSeconds = _profile!.focusDuration;
   }
 
   void _tick() {
@@ -181,9 +187,8 @@ class TimerCubit extends Cubit<TimerState> {
         _vibrateComplete();
         emit(TimerCompleted(completedSessions: _completedSessions));
       } else {
-        // Break ended — return to idle so user can start the next session
-        _phase = TimerPhase.focus;
-        _remainingSeconds = _profile!.focusDuration;
+        // Break ended, return to idle so user can start the next session
+        _startNextFocus();
         emit(const TimerInitial());
       }
     } else {
