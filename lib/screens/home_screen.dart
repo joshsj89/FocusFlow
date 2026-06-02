@@ -548,15 +548,26 @@ class _BreakBody extends StatelessWidget {
           const SizedBox(height: 12),
           _UpcomingSessionCard(profile: profile),
           const SizedBox(height: 24),
-          TextButton(
-            onPressed: () => context.read<TimerCubit>().skipBreak(),
-            child: Text(
-              'Start Next Session',
-              style: GoogleFonts.openSans(
-                color: AppColors.subtitleText,
-                fontSize: 14,
+          Column(
+            children: [
+              TextButton(
+                onPressed: () => context.read<TimerCubit>().skipBreak(),
+                child: Text(
+                  'Skip Break',
+                  style: GoogleFonts.openSans(
+                    color: AppColors.subtitleText,
+                    fontSize: 14,
+                  ),
+                ),
               ),
-            ),
+              Text(
+                'Your session progress is saved',
+                style: GoogleFonts.openSans(
+                  color: AppColors.subtitleText.withValues(alpha: 0.6),
+                  fontSize: 11,
+                ),
+              ),
+            ],
           ),
         ],
       ),
