@@ -17,6 +17,21 @@ class TimerCard extends StatelessWidget {
     this.onTap,
   });
 
+  static const _kPresetLabels = {
+    'studying': 'Studying',
+    'coding': 'Coding',
+    'reading': 'Reading',
+    'exercise': 'Exercise',
+    'research': 'Research',
+  };
+
+  static String _activityLabel(String type) {
+    if (_kPresetLabels.containsKey(type)) return _kPresetLabels[type]!;
+    if (type.isEmpty) return '';
+    // Custom name — capitalise first letter
+    return '${type[0].toUpperCase()}${type.substring(1)}';
+  }
+
   void _openEdit(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -74,7 +89,7 @@ class TimerCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    '${timer.focusDuration ~/ 60} mins • ${timer.sessionsPerSit} sessions',
+                    '${_activityLabel(timer.activityType)} • ${timer.focusDuration ~/ 60} mins • ${timer.sessionsPerSit} sessions',
                     style: GoogleFonts.openSans(
                       fontSize: 12,
                       color: AppColors.subtitleText,

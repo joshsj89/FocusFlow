@@ -476,20 +476,119 @@ class BreakDurationChips extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selected = context
-        .select<TimerFormCubit, int>((c) => c.state.breakDuration);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: _kBreakOptions
-          .map((o) => PresetPill(
-                label: o.$2,
-                selected: selected == o.$1,
-                onTap: () => context
-                    .read<TimerFormCubit>()
-                    .breakDurationSelected(o.$1),
-              ))
-          .toList(),
+    final breakDuration =
+        context.select<TimerFormCubit, int>((c) => c.state.breakDuration);
+    final isCustom = context
+        .select<TimerFormCubit, bool>((c) => c.state.breakDurationIsCustom);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ..._kBreakOptions.map((o) => PresetPill(
+                  label: o.$2,
+                  selected: !isCustom && breakDuration == o.$1,
+                  onTap: () => context
+                      .read<TimerFormCubit>()
+                      .breakDurationSelected(o.$1),
+                )),
+            PresetPill(
+              label: 'Custom',
+              selected: isCustom,
+              onTap: () => context
+                  .read<TimerFormCubit>()
+                  .breakDurationCustomActivated(),
+            ),
+          ],
+        ),
+        if (isCustom) ...[
+          const SizedBox(height: 10),
+          _CustomBreakPicker(),
+        ],
+      ],
+    );
+  }
+}
+
+class _CustomBreakPicker extends StatefulWidget {
+  const _CustomBreakPicker();
+
+  @override
+  State<_CustomBreakPicker> createState() => _CustomBreakPickerState();
+}
+
+class _CustomBreakPickerState extends State<_CustomBreakPicker> {
+  late final TextEditingController _hoursCtrl;
+  late final TextEditingController _minsCtrl;
+  bool _touched = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final current = context.read<TimerFormCubit>().state.breakDuration;
+    _hoursCtrl = TextEditingController(text: (current ~/ 3600).toString());
+    _minsCtrl =
+        TextEditingController(text: ((current % 3600) ~/ 60).toString());
+    _hoursCtrl.addListener(_onChanged);
+    _minsCtrl.addListener(_onChanged);
+  }
+
+  void _onChanged() {
+    setState(() => _touched = true);
+    final hours = int.tryParse(_hoursCtrl.text) ?? 0;
+    final mins = (int.tryParse(_minsCtrl.text) ?? 0).clamp(0, 59);
+    context.read<TimerFormCubit>().customBreakDurationSet(hours, mins);
+  }
+
+  @override
+  void dispose() {
+    _hoursCtrl.dispose();
+    _minsCtrl.dispose();
+    super.dispose();
+  }
+
+  bool get _isZero {
+    final hours = int.tryParse(_hoursCtrl.text) ?? 0;
+    final mins = int.tryParse(_minsCtrl.text) ?? 0;
+    return hours == 0 && mins == 0;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final showError = _touched && _isZero;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+                child: _TimeField(
+                    controller: _hoursCtrl,
+                    label: 'hrs',
+                    max: 2,
+                    hasError: showError)),
+            const SizedBox(width: 12),
+            Expanded(
+                child: _TimeField(
+                    controller: _minsCtrl,
+                    label: 'min',
+                    max: 59,
+                    hasError: showError)),
+          ],
+        ),
+        if (showError)
+          Padding(
+            padding: const EdgeInsets.only(top: 6, left: 4),
+            child: Text(
+              'Duration must be greater than 0',
+              style: GoogleFonts.openSans(
+                  fontSize: 12, color: Colors.red.shade400),
+            ),
+          ),
+      ],
     );
   }
 }
