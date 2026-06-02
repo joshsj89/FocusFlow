@@ -94,7 +94,8 @@ class AccountCubit extends Cubit<AccountState> {
       } else {
         emit(AccountLoaded(profile: UserProfile.fromMap(user.uid, data)));
       }
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('AccountCubit.loadProfile error: $e\n$stack');
       emit(const AccountError("Couldn't load profile"));
     }
   }

@@ -24,6 +24,24 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    // Rebuild whenever any field changes so _canSubmit re-evaluates
+    _emailController.addListener(_rebuild);
+    _passwordController.addListener(_rebuild);
+    _nameController.addListener(_rebuild);
+  }
+
+  void _rebuild() => setState(() {});
+
+  bool get _canSubmit {
+    final emailOk = _emailController.text.trim().isNotEmpty;
+    final passwordOk = _passwordController.text.isNotEmpty;
+    final nameOk = _nameController.text.trim().isNotEmpty;
+    return _isSignUp ? (nameOk && emailOk && passwordOk) : (emailOk && passwordOk);
+  }
+
+  @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
@@ -224,14 +242,14 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ],
                 const SizedBox(height: 28),
-                AnimatedPress(
-                  onTap: _loading ? null : _submit,
+                Opacity(
+                  opacity: (_canSubmit && !_loading) ? 1.0 : 0.45,
+                  child: AnimatedPress(
+                  onTap: (_canSubmit && !_loading) ? _submit : null,
                   child: Container(
                     height: 52,
                     decoration: BoxDecoration(
-                      color: _loading
-                          ? AppColors.teal.withAlpha(160)
-                          : AppColors.teal,
+                      color: AppColors.teal,
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
@@ -260,6 +278,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                     ),
+                  ),
                   ),
                 ),
                 const SizedBox(height: 20),
