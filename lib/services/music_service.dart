@@ -23,16 +23,31 @@ class MusicService extends ChangeNotifier {
   bool get isPlaying => _player.playing;
   List<TrackInfo> get tracks => _tracks;
 
+  // Human-readable names for known files. Any file not listed here falls back
+  // to the cleaned-up filename.
+  static const _kDisplayNames = {
+    'dragon-studio-soothing-ocean-waves-372489.mp3': 'Ocean Waves',
+    'freesound_community-waves-53479.mp3': 'Gentle Waves',
+    'vibehorn-motivational-jazz-beat-479216.mp3': 'Jazz Beat',
+    'u_iof4lbuflq-jazz-cafe-crowd-319309.mp3': 'Jazz Café',
+    'liecio-calming-rain-257596.mp3': 'Calming Rain',
+  };
+
   static String _toDisplayName(String assetKey) {
     final filename = assetKey.split('/').last;
+    if (_kDisplayNames.containsKey(filename)) return _kDisplayNames[filename]!;
+    // Fallback: strip numbers and clean up the filename
     final noExt = filename.contains('.')
         ? filename.substring(0, filename.lastIndexOf('.'))
         : filename;
     return noExt
+        .replaceAll(RegExp(r'[-_]?\d+'), '')
         .replaceAll('_', ' ')
         .replaceAll('-', ' ')
+        .trim()
         .split(' ')
-        .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+        .where((w) => w.isNotEmpty)
+        .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
   }
 
@@ -64,16 +79,30 @@ class MusicService extends ChangeNotifier {
   }
 
   Future<void> play(TrackInfo track) async {
+    // Update track immediately so the UI reflects the selection at once,
+    // rather than waiting for all the async audio operations to finish.
+    _currentTrack = track;
+    notifyListeners();
     try {
-      if (_currentTrack?.assetKey != track.assetKey) {
-        await _player.stop();
-        await _player.setAsset(track.assetKey);
-        await _player.setLoopMode(LoopMode.one);
-      }
+      await _player.stop();
+      await _player.setAsset(track.assetKey);
+      await _player.setLoopMode(LoopMode.one);
       await _player.play();
-      _currentTrack = track;
       notifyListeners();
-    } catch (_) {}
+    } catch (_) {
+      _currentTrack = null;
+      notifyListeners();
+    }
+  }
+
+  Future<void> pause() async {
+    await _player.pause();
+    notifyListeners();
+  }
+
+  Future<void> resume() async {
+    await _player.play();
+    notifyListeners();
   }
 
   Future<void> stop() async {

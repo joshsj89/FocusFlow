@@ -19,6 +19,7 @@ import '../widgets/session_progress.dart';
 import '../widgets/sound_selector_bar.dart';
 import '../widgets/timer_card.dart';
 import '../widgets/timer_display.dart';
+import '../services/music_service.dart';
 import '../widgets/sound_picker_sheet.dart';
 import '../widgets/weekly_wellness_sheet.dart';
 
@@ -59,6 +60,20 @@ class _HomeView extends StatelessWidget {
           listener: (context, state) {
             if (state.activeProfile != null) {
               context.read<TimerCubit>().loadProfile(state.activeProfile!);
+            }
+          },
+        ),
+        // Sync music playback with timer state
+        BlocListener<TimerCubit, TimerState>(
+          listenWhen: (prev, next) => prev.runtimeType != next.runtimeType,
+          listener: (context, state) {
+            final music = MusicService.instance;
+            if (state is TimerRunning || state is TimerOnBreak) {
+              if (music.currentTrack != null && !music.isPlaying) {
+                music.resume();
+              }
+            } else {
+              if (music.isPlaying) music.pause();
             }
           },
         ),

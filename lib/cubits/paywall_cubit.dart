@@ -93,6 +93,13 @@ class PaywallCubit extends Cubit<PaywallState> {
     }
   }
 
+  // Simulates a completed purchase for demo/testing purposes.
+  Future<void> simulatePurchase() async {
+    emit(state.copyWith(status: PaywallStatus.loading));
+    await Future.delayed(const Duration(milliseconds: 800));
+    if (!isClosed) emit(state.copyWith(status: PaywallStatus.success));
+  }
+
   Future<void> restorePurchases() async {
     emit(state.copyWith(status: PaywallStatus.loading));
     try {

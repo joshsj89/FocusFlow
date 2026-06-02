@@ -116,7 +116,6 @@ class _PaywallBody extends StatelessWidget {
                     // CTA button
                     _TrialButton(isLoading: isLoading),
                     const SizedBox(height: 12),
-                    // Maybe Later
                     TextButton(
                       onPressed:
                           isLoading ? null : () => Navigator.of(context).pop(),
@@ -125,22 +124,6 @@ class _PaywallBody extends StatelessWidget {
                         style: GoogleFonts.openSans(
                           color: AppColors.subtitleText,
                           fontSize: 13,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    // Restore purchases
-                    TextButton(
-                      onPressed: isLoading
-                          ? null
-                          : () =>
-                              context.read<PaywallCubit>().restorePurchases(),
-                      child: Text(
-                        'Restore purchases',
-                        style: GoogleFonts.openSans(
-                          color: AppColors.subtitleText,
-                          fontSize: 11,
-                          decoration: TextDecoration.underline,
                         ),
                       ),
                     ),
@@ -328,7 +311,7 @@ class _TrialButton extends StatelessWidget {
       width: double.infinity,
       child: ElevatedButton(
         onPressed:
-            isLoading ? null : () => context.read<PaywallCubit>().initiatePurchase(),
+            isLoading ? null : () => context.read<PaywallCubit>().simulatePurchase(),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.purple,
           foregroundColor: Colors.white,
