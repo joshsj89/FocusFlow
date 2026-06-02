@@ -551,7 +551,7 @@ class _BreakBody extends StatelessWidget {
           TextButton(
             onPressed: () => context.read<TimerCubit>().skipBreak(),
             child: Text(
-              'Skip Break',
+              'Start Next Session',
               style: GoogleFonts.openSans(
                 color: AppColors.subtitleText,
                 fontSize: 14,
