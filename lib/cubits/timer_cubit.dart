@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' show Random, sqrt;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:proximity_sensor/proximity_sensor.dart';
 import 'package:sensors_plus/sensors_plus.dart';
@@ -85,8 +86,10 @@ class TimerOnBreak extends TimerState {
 
 // ── Cubit ─────────────────────────────────────────────────────────────────────
 
-class TimerCubit extends Cubit<TimerState> {
-  TimerCubit() : super(const TimerInitial());
+class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
+  TimerCubit() : super(const TimerInitial()) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   TimerProfile? _profile;
   Timer? _ticker;
@@ -94,6 +97,7 @@ class TimerCubit extends Cubit<TimerState> {
   int _completedSessions = 0;
   TimerPhase _phase = TimerPhase.focus;
   int _lastSuggestionIndex = -1;
+  DateTime? _backgroundedAt; // stamped when app is paused, used to fast-forward on resume
   StreamSubscription<UserAccelerometerEvent>? _motionSub;
   StreamSubscription<dynamic>? _proximitySub;
   bool _phoneIsDown = false;
@@ -181,21 +185,64 @@ class TimerCubit extends Cubit<TimerState> {
     ));
   }
 
+  // ── App lifecycle ─────────────────────────────────────────────────────────────
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      if (this.state is TimerRunning || this.state is TimerOnBreak) {
+        _backgroundedAt = DateTime.now();
+        _cancelTicker();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _onAppResumed();
+    }
+  }
+
+  void _onAppResumed() {
+    final backgroundedAt = _backgroundedAt;
+    if (backgroundedAt == null) return;
+    _backgroundedAt = null;
+
+    // Only fast-forward if the timer was still running (sensor may have paused it)
+    if (state is! TimerRunning && state is! TimerOnBreak) return;
+
+    final elapsed = DateTime.now().difference(backgroundedAt).inSeconds;
+    _remainingSeconds = (_remainingSeconds - elapsed).clamp(0, _remainingSeconds);
+
+    if (_remainingSeconds <= 0) {
+      _completeCurrentPhase();
+    } else {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      _emitActiveState(); // immediately reflect new remaining time in UI
+    }
+  }
+
+  void _emitActiveState() {
+    if (state is TimerOnBreak || _phase != TimerPhase.focus) {
+      emit(TimerOnBreak(
+        remainingSeconds: _remainingSeconds,
+        totalSeconds: _currentTotal,
+        nextTimerName: _profile!.name,
+        suggestionIndex: _lastSuggestionIndex,
+      ));
+    } else {
+      emit(TimerRunning(
+        remainingSeconds: _remainingSeconds,
+        totalSeconds: _currentTotal,
+        completedSessions: _completedSessions,
+        phase: _phase,
+      ));
+    }
+  }
+
+  // ── Tick ──────────────────────────────────────────────────────────────────────
+
   void _tick() {
     if (_remainingSeconds <= 1) {
       _cancelTicker();
       _remainingSeconds = 0;
-
-      if (_phase == TimerPhase.focus) {
-        _completedSessions++;
-        _vibrateComplete();
-        emit(TimerCompleted(completedSessions: _completedSessions));
-      } else {
-        // Break ended — return to idle so user can start the next session
-        _phase = TimerPhase.focus;
-        _remainingSeconds = _profile!.focusDuration;
-        emit(const TimerInitial());
-      }
+      _completeCurrentPhase();
     } else {
       _remainingSeconds--;
       if (_phase == TimerPhase.focus) {
@@ -213,6 +260,19 @@ class TimerCubit extends Cubit<TimerState> {
           suggestionIndex: _lastSuggestionIndex,
         ));
       }
+    }
+  }
+
+  void _completeCurrentPhase() {
+    if (_phase == TimerPhase.focus) {
+      _completedSessions++;
+      _vibrateComplete();
+      emit(TimerCompleted(completedSessions: _completedSessions));
+    } else {
+      // Break ended — return to idle
+      _phase = TimerPhase.focus;
+      _remainingSeconds = _profile!.focusDuration;
+      emit(const TimerInitial());
     }
   }
 
@@ -275,6 +335,7 @@ class TimerCubit extends Cubit<TimerState> {
 
   @override
   Future<void> close() {
+    WidgetsBinding.instance.removeObserver(this);
     _cancelTicker();
     _stopSensors();
     return super.close();
