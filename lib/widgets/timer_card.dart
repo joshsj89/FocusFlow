@@ -81,6 +81,8 @@ class TimerCard extends StatelessWidget {
                 children: [
                   Text(
                     timer.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: GoogleFonts.openSans(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
