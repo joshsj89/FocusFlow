@@ -77,6 +77,7 @@ class ActiveTimerCubit extends Cubit<ActiveTimerState> {
   }
 
   void selectTimer(String timerProfileId) {
+    if (state.allProfiles.isEmpty) return;
     final profile = state.allProfiles.firstWhere(
       (p) => p.id == timerProfileId,
       orElse: () => state.allProfiles.first,

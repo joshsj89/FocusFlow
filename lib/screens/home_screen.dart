@@ -92,24 +92,26 @@ class _HomeView extends StatelessWidget {
             showDialog<void>(
               context: context,
               barrierDismissible: false,
-              builder: (_) => SessionCompleteSheet(
-                focusMins: (profile?.focusDuration ?? 0) ~/ 60,
-                sessionsCompleted: completed,
-                totalSessions: profile?.sessionsPerSit ?? 4,
-                onDone: (mood) {
-                  final uid = FirebaseAuth.instance.currentUser?.uid;
-                  if (uid != null && profile != null) {
-                    sessionCubit.saveSession(SessionRecord(
+              builder: (_) => BlocProvider.value(
+                value: sessionCubit..reset(),
+                child: SessionCompleteSheet(
+                  focusMins: (profile?.focusDuration ?? 0) ~/ 60,
+                  sessionsCompleted: completed,
+                  totalSessions: profile?.sessionsPerSit ?? 4,
+                  buildRecord: (mood) {
+                    final uid =
+                        FirebaseAuth.instance.currentUser?.uid ?? '';
+                    return SessionRecord(
                       id: '',
                       userId: uid,
-                      timerProfileId: profile.id,
-                      focusDurationSeconds: profile.focusDuration,
+                      timerProfileId: profile?.id ?? '',
+                      focusDurationSeconds: profile?.focusDuration ?? 0,
                       completedSessions: completed,
                       mood: _toMoodRating(mood),
                       completedAt: DateTime.now(),
-                    ));
-                  }
-                },
+                    );
+                  },
+                ),
               ),
             ).then((_) => timerCubit.startBreak());
           },
@@ -535,9 +537,9 @@ class _BreakBody extends StatelessWidget {
 
   const _BreakBody({required this.state, this.profile});
 
-  // Stable pick: same break duration → same suggestion throughout the break
+  // Index is chosen once per break in TimerCubit.startBreak() — random, never repeats consecutively
   BreakSuggestion get _suggestion =>
-      kBreakSuggestions[state.totalSeconds % kBreakSuggestions.length];
+      kBreakSuggestions[state.suggestionIndex % kBreakSuggestions.length];
 
   @override
   Widget build(BuildContext context) {
@@ -561,30 +563,47 @@ class _BreakBody extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
+          // ── Content ──────────────────────────────────────────────────
           _SuggestionCard(suggestion: _suggestion),
-          const SizedBox(height: 12),
-          _UpcomingSessionCard(profile: profile),
+          const SizedBox(height: 20),
+          // ── Control ──────────────────────────────────────────────────
+          SoundSelectorBar(
+            onTap: () => showModalBottomSheet<void>(
+              context: context,
+              isScrollControlled: true,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (_) => const SoundPickerSheet(),
+            ),
+          ),
           const SizedBox(height: 24),
-          Column(
-            children: [
-              TextButton(
-                onPressed: () => context.read<TimerCubit>().skipBreak(),
-                child: Text(
-                  'Skip Break',
-                  style: GoogleFonts.openSans(
-                    color: AppColors.subtitleText,
-                    fontSize: 14,
-                  ),
-                ),
+          // ── Footer ───────────────────────────────────────────────────
+          if (profile != null)
+            Text(
+              'Up next: ${profile!.name} · ${profile!.focusDuration ~/ 60} min',
+              style: GoogleFonts.openSans(
+                fontSize: 12,
+                color: AppColors.subtitleText,
               ),
-              Text(
-                'Your session progress is saved',
-                style: GoogleFonts.openSans(
-                  color: AppColors.subtitleText.withValues(alpha: 0.6),
-                  fontSize: 11,
-                ),
+            ),
+          const SizedBox(height: 4),
+          TextButton(
+            onPressed: () => context.read<TimerCubit>().skipBreak(),
+            child: Text(
+              'Skip Break',
+              style: GoogleFonts.openSans(
+                color: AppColors.subtitleText,
+                fontSize: 14,
               ),
-            ],
+            ),
+          ),
+          Text(
+            'Your session progress is saved',
+            style: GoogleFonts.openSans(
+              color: AppColors.subtitleText.withValues(alpha: 0.6),
+              fontSize: 11,
+            ),
           ),
         ],
       ),
@@ -667,48 +686,3 @@ class _SuggestionCard extends StatelessWidget {
       };
 }
 
-class _UpcomingSessionCard extends StatelessWidget {
-  final TimerProfile? profile;
-
-  const _UpcomingSessionCard({this.profile});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F4FB),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.timer_outlined, color: AppColors.purple, size: 22),
-          const SizedBox(width: 12),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Up Next',
-                style: GoogleFonts.openSans(
-                  fontSize: 11,
-                  color: AppColors.subtitleText,
-                ),
-              ),
-              Text(
-                profile != null
-                    ? '${profile!.name} · ${profile!.focusDuration ~/ 60} min'
-                    : 'Select a timer',
-                style: GoogleFonts.openSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.darkNavy,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}

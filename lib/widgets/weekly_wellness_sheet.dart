@@ -107,7 +107,9 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final moodColor = _moodColor(summary.avgMoodScore);
+    final moodColor = summary.avgMoodScore > 0
+        ? _moodColor(summary.avgMoodScore)
+        : Colors.white54;
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
@@ -127,7 +129,11 @@ class _StatsCard extends StatelessWidget {
               value: '${(summary.completionRate * 100).toStringAsFixed(0)}%',
               label: 'Completion'),
           const _StatDivider(),
-          _MoodStatItem(color: moodColor, label: 'Avg. Mood'),
+          _MoodStatItem(
+            color: moodColor,
+            label: 'Avg. Mood',
+            noData: summary.avgMoodScore == 0,
+          ),
         ],
       ),
     );
@@ -169,18 +175,30 @@ class _StatItem extends StatelessWidget {
 class _MoodStatItem extends StatelessWidget {
   final Color color;
   final String label;
+  final bool noData;
 
-  const _MoodStatItem({required this.color, required this.label});
+  const _MoodStatItem({
+    required this.color,
+    required this.label,
+    this.noData = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(shape: BoxShape.circle, color: color),
-        ),
+        noData
+            ? Text('–',
+                style: GoogleFonts.openSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white54))
+            : Container(
+                width: 28,
+                height: 28,
+                decoration:
+                    BoxDecoration(shape: BoxShape.circle, color: color),
+              ),
         const SizedBox(height: 4),
         Text(label,
             textAlign: TextAlign.center,

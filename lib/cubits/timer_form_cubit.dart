@@ -8,6 +8,7 @@ enum FormStatus { idle, saving, saved, error }
 
 // Preset sets — used to detect whether an existing profile uses custom values
 const kFocusDurationPresets = {900, 1500, 2700, 3600};
+const kBreakDurationPresets = {300, 600, 900}; // 5, 10, 15 min
 const kActivityTypePresets = {
   'studying', 'coding', 'reading', 'exercise', 'research'
 };
@@ -18,9 +19,10 @@ class TimerFormState extends Equatable {
   final String name;
   final String activityType;   // preset id OR the custom name when activityIsCustom
   final bool activityIsCustom; // true when "Other" chip is selected
-  final int focusDuration;     // seconds
+  final int focusDuration;          // seconds
   final bool focusDurationIsCustom; // true when not a preset chip
-  final int breakDuration;     // seconds
+  final int breakDuration;          // seconds
+  final bool breakDurationIsCustom; // true when not a preset chip
   final int sessionsPerSit;
   final bool showNameError;
   final FormStatus status;
@@ -33,6 +35,7 @@ class TimerFormState extends Equatable {
     required this.focusDuration,
     this.focusDurationIsCustom = false,
     required this.breakDuration,
+    this.breakDurationIsCustom = false,
     required this.sessionsPerSit,
     this.showNameError = false,
     required this.status,
@@ -52,6 +55,7 @@ class TimerFormState extends Equatable {
   bool get isValid {
     if (name.trim().isEmpty) return false;
     if (focusDuration <= 0) return false;
+    if (breakDuration <= 0) return false;
     if (activityIsCustom && activityType.trim().isEmpty) return false;
     return true;
   }
@@ -63,6 +67,7 @@ class TimerFormState extends Equatable {
     int? focusDuration,
     bool? focusDurationIsCustom,
     int? breakDuration,
+    bool? breakDurationIsCustom,
     int? sessionsPerSit,
     bool? showNameError,
     FormStatus? status,
@@ -76,6 +81,8 @@ class TimerFormState extends Equatable {
       focusDurationIsCustom:
           focusDurationIsCustom ?? this.focusDurationIsCustom,
       breakDuration: breakDuration ?? this.breakDuration,
+      breakDurationIsCustom:
+          breakDurationIsCustom ?? this.breakDurationIsCustom,
       sessionsPerSit: sessionsPerSit ?? this.sessionsPerSit,
       showNameError: showNameError ?? this.showNameError,
       status: status ?? this.status,
@@ -86,8 +93,8 @@ class TimerFormState extends Equatable {
   @override
   List<Object?> get props => [
         name, activityType, activityIsCustom, focusDuration,
-        focusDurationIsCustom, breakDuration, sessionsPerSit,
-        showNameError, status, errorMessage,
+        focusDurationIsCustom, breakDuration, breakDurationIsCustom,
+        sessionsPerSit, showNameError, status, errorMessage,
       ];
 }
 
@@ -108,6 +115,8 @@ class TimerFormCubit extends Cubit<TimerFormState> {
           focusDurationIsCustom:
               !kFocusDurationPresets.contains(profile.focusDuration),
           breakDuration: profile.breakDuration,
+          breakDurationIsCustom:
+              !kBreakDurationPresets.contains(profile.breakDuration),
           sessionsPerSit: profile.sessionsPerSit,
           status: FormStatus.idle,
         ));
@@ -159,8 +168,21 @@ class TimerFormCubit extends Cubit<TimerFormState> {
 
   // ── Break duration ───────────────────────────────────────────────────────────
 
-  void breakDurationSelected(int seconds) =>
-      emit(state.copyWith(breakDuration: seconds));
+  void breakDurationSelected(int seconds) => emit(state.copyWith(
+        breakDuration: seconds,
+        breakDurationIsCustom: false,
+      ));
+
+  void customBreakDurationSet(int hours, int minutes) {
+    final seconds = (hours * 3600) + (minutes * 60);
+    emit(state.copyWith(
+      breakDuration: seconds,
+      breakDurationIsCustom: true,
+    ));
+  }
+
+  void breakDurationCustomActivated() =>
+      emit(state.copyWith(breakDurationIsCustom: true));
 
   // ── Sessions ─────────────────────────────────────────────────────────────────
 

@@ -1,11 +1,13 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:math' show Random, sqrt;
 import 'package:equatable/equatable.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart' show AppLifecycleState, WidgetsBinding, WidgetsBindingObserver;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:proximity_sensor/proximity_sensor.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:vibration/vibration.dart';
+import '../constants/break_suggestions.dart';
 import '../models/timer_profile.dart';
 
 enum TimerPhase { focus, shortBreak, longBreak }
@@ -66,26 +68,33 @@ class TimerOnBreak extends TimerState {
   final int remainingSeconds;
   final int totalSeconds;
   final String nextTimerName;
+  final int suggestionIndex; // index into kBreakSuggestions, picked once per break
 
   const TimerOnBreak({
     required this.remainingSeconds,
     required this.totalSeconds,
     required this.nextTimerName,
+    required this.suggestionIndex,
   });
 
   @override
-  List<Object?> get props => [remainingSeconds, totalSeconds, nextTimerName];
+  List<Object?> get props =>
+      [remainingSeconds, totalSeconds, nextTimerName, suggestionIndex];
 }
 
 
-class TimerCubit extends Cubit<TimerState> {
-  TimerCubit() : super(const TimerInitial());
+class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
+  TimerCubit() : super(const TimerInitial()) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   TimerProfile? _profile;
   Timer? _ticker;
   int _remainingSeconds = 0;
   int _completedSessions = 0;
   TimerPhase _phase = TimerPhase.focus;
+  int _lastSuggestionIndex = -1;
+  DateTime? _backgroundedAt; // stamped when app is paused, used to fast-forward on resume
   StreamSubscription<UserAccelerometerEvent>? _motionSub;
   StreamSubscription<dynamic>? _proximitySub;
   bool _phoneIsDown = false;
@@ -93,7 +102,9 @@ class TimerCubit extends Cubit<TimerState> {
   void loadProfile(TimerProfile profile) {
     _cancelTicker();
     _profile = profile;
-    _remainingSeconds = profile.focusDuration;
+    // Clamp to minimum 60 s — guards against corrupted Firestore documents
+    // that pre-date form validation (focusDuration or breakDuration == 0).
+    _remainingSeconds = profile.focusDuration.clamp(60, 8 * 3600);
     _completedSessions = 0;
     _phase = TimerPhase.focus;
     emit(const TimerInitial());
@@ -146,12 +157,22 @@ class TimerCubit extends Cubit<TimerState> {
     _phase = _completedSessions % _profile!.sessionsPerSit == 0
         ? TimerPhase.longBreak
         : TimerPhase.shortBreak;
-    _remainingSeconds = _profile!.breakDuration;
+    _remainingSeconds = _profile!.breakDuration.clamp(60, 2 * 3600);
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+
+    // Pick a random suggestion, avoiding the same one as last break
+    final total = kBreakSuggestions.length;
+    int index;
+    do {
+      index = Random().nextInt(total);
+    } while (index == _lastSuggestionIndex && total > 1);
+    _lastSuggestionIndex = index;
+
     emit(TimerOnBreak(
       remainingSeconds: _remainingSeconds,
       totalSeconds: _profile!.breakDuration,
       nextTimerName: _profile!.name,
+      suggestionIndex: index,
     ));
   }
 
@@ -169,6 +190,58 @@ class TimerCubit extends Cubit<TimerState> {
     ));
   }
 
+  // ── App lifecycle ─────────────────────────────────────────────────────────────
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) {
+      if (this.state is TimerRunning || this.state is TimerOnBreak) {
+        _backgroundedAt = DateTime.now();
+        _cancelTicker();
+      }
+    } else if (state == AppLifecycleState.resumed) {
+      _onAppResumed();
+    }
+  }
+
+  void _onAppResumed() {
+    final backgroundedAt = _backgroundedAt;
+    if (backgroundedAt == null) return;
+    _backgroundedAt = null;
+
+    if (state is! TimerRunning && state is! TimerOnBreak) return;
+
+    final elapsed = DateTime.now().difference(backgroundedAt).inSeconds;
+    _remainingSeconds = (_remainingSeconds - elapsed).clamp(0, _remainingSeconds);
+
+    if (_remainingSeconds <= 0) {
+      _completeCurrentPhase();
+    } else {
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+      _emitActiveState();
+    }
+  }
+
+  void _emitActiveState() {
+    if (state is TimerOnBreak || _phase != TimerPhase.focus) {
+      emit(TimerOnBreak(
+        remainingSeconds: _remainingSeconds,
+        totalSeconds: _currentTotal,
+        nextTimerName: _profile!.name,
+        suggestionIndex: _lastSuggestionIndex,
+      ));
+    } else {
+      emit(TimerRunning(
+        remainingSeconds: _remainingSeconds,
+        totalSeconds: _currentTotal,
+        completedSessions: _completedSessions,
+        phase: _phase,
+      ));
+    }
+  }
+
+  // ── Helpers ───────────────────────────────────────────────────────────────────
+
   void _startNextFocus() {
     if (_completedSessions >= _profile!.sessionsPerSit) {
       _completedSessions = 0;
@@ -177,20 +250,14 @@ class TimerCubit extends Cubit<TimerState> {
     _remainingSeconds = _profile!.focusDuration;
   }
 
+  // ── Tick ──────────────────────────────────────────────────────────────────────
+
+
   void _tick() {
     if (_remainingSeconds <= 1) {
       _cancelTicker();
       _remainingSeconds = 0;
-
-      if (_phase == TimerPhase.focus) {
-        _completedSessions++;
-        _vibrateComplete();
-        emit(TimerCompleted(completedSessions: _completedSessions));
-      } else {
-        // Break ended, return to idle so user can start the next session
-        _startNextFocus();
-        emit(const TimerInitial());
-      }
+      _completeCurrentPhase();
     } else {
       _remainingSeconds--;
       if (_phase == TimerPhase.focus) {
@@ -205,8 +272,21 @@ class TimerCubit extends Cubit<TimerState> {
           remainingSeconds: _remainingSeconds,
           totalSeconds: _currentTotal,
           nextTimerName: _profile!.name,
+          suggestionIndex: _lastSuggestionIndex,
         ));
       }
+    }
+  }
+
+  void _completeCurrentPhase() {
+    if (_phase == TimerPhase.focus) {
+      _completedSessions++;
+      _vibrateComplete();
+      emit(TimerCompleted(completedSessions: _completedSessions));
+    } else {
+      // Break ended — reset sessions if a full sit is done, then return to idle
+      _startNextFocus();
+      emit(const TimerInitial());
     }
   }
 
@@ -269,6 +349,7 @@ class TimerCubit extends Cubit<TimerState> {
 
   @override
   Future<void> close() {
+    WidgetsBinding.instance.removeObserver(this);
     _cancelTicker();
     _stopSensors();
     return super.close();

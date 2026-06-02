@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class TrackInfo {
   final String assetKey;
@@ -18,6 +19,8 @@ class MusicService extends ChangeNotifier {
   TrackInfo? _currentTrack;
   List<TrackInfo> _tracks = [];
   bool _tracksLoaded = false;
+  int _playGeneration = 0; // incremented on each play() call; lets concurrent calls bail out
+  static const _kPrefKey = 'focusflow_last_track';
 
   TrackInfo? get currentTrack => _currentTrack;
   bool get isPlaying => _player.playing;
@@ -31,6 +34,7 @@ class MusicService extends ChangeNotifier {
     'vibehorn-motivational-jazz-beat-479216.mp3': 'Jazz Beat',
     'u_iof4lbuflq-jazz-cafe-crowd-319309.mp3': 'Jazz Café',
     'liecio-calming-rain-257596.mp3': 'Calming Rain',
+    'mdjahidhossain-birds-nature-relax-sounds-110839.mp3': 'Birds & Nature',
   };
 
   static String _toDisplayName(String assetKey) {
@@ -49,6 +53,24 @@ class MusicService extends ChangeNotifier {
         .where((w) => w.isNotEmpty)
         .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
         .join(' ');
+  }
+
+  /// Call once after runApp() to restore the track the user last selected.
+  /// Loads the track list if needed, then restores the visual selection.
+  /// Does NOT auto-play — the timer start will resume playback.
+  Future<void> restoreLastTrack() async {
+    await loadTracks();
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedKey = prefs.getString(_kPrefKey);
+      if (savedKey == null) return;
+      final match =
+          _tracks.where((t) => t.assetKey == savedKey).firstOrNull;
+      if (match != null) {
+        _currentTrack = match;
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   Future<List<TrackInfo>> loadTracks() async {
@@ -79,19 +101,37 @@ class MusicService extends ChangeNotifier {
   }
 
   Future<void> play(TrackInfo track) async {
-    // Update track immediately so the UI reflects the selection at once,
-    // rather than waiting for all the async audio operations to finish.
+    // Update track immediately so the UI reflects the selection at once.
     _currentTrack = track;
     notifyListeners();
+
+    // Generation counter: if a newer play() call starts while we're mid-load,
+    // we bail out after each await so the latest call always wins cleanly.
+    final generation = ++_playGeneration;
+
     try {
       await _player.stop();
+      if (generation != _playGeneration) return;
+
       await _player.setAsset(track.assetKey);
+      if (generation != _playGeneration) return;
+
       await _player.setLoopMode(LoopMode.one);
+      if (generation != _playGeneration) return;
+
       await _player.play();
+      if (generation != _playGeneration) return;
+
       notifyListeners();
+      // Persist so the selection survives a cold restart
+      SharedPreferences.getInstance()
+          .then((p) => p.setString(_kPrefKey, track.assetKey))
+          .catchError((_) => false);
     } catch (_) {
-      _currentTrack = null;
-      notifyListeners();
+      if (generation == _playGeneration) {
+        _currentTrack = null;
+        notifyListeners();
+      }
     }
   }
 
@@ -109,6 +149,9 @@ class MusicService extends ChangeNotifier {
     await _player.stop();
     _currentTrack = null;
     notifyListeners();
+    SharedPreferences.getInstance()
+        .then((p) => p.remove(_kPrefKey))
+        .catchError((_) => false);
   }
 
   @override
