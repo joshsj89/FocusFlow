@@ -95,15 +95,21 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
   TimerPhase _phase = TimerPhase.focus;
   int _lastSuggestionIndex = -1;
   DateTime? _backgroundedAt; // stamped when app is paused, used to fast-forward on resume
-  StreamSubscription<UserAccelerometerEvent>? _motionSub;
+  StreamSubscription<AccelerometerEvent>? _motionSub;
   StreamSubscription<dynamic>? _proximitySub;
   bool _phoneIsDown = false;
+
+  // Resting gravity vector (EMA) used to detect pick-up
+  double _gx = 0, _gy = 0, _gz = 0;
+  bool _gravityInitialized = false;
+  int _pickupFrames = 0;
+  static const _kGravityAlpha = 0.05; // tracks resting orientation
+  static const _kPickupThreshold = 4.0;
+  static const _kPickupFrames = 4; // ~400 ms
 
   void loadProfile(TimerProfile profile) {
     _cancelTicker();
     _profile = profile;
-    // Clamp to minimum 60 s — guards against corrupted Firestore documents
-    // that pre-date form validation (focusDuration or breakDuration == 0).
     _remainingSeconds = profile.focusDuration.clamp(60, 8 * 3600);
     _completedSessions = 0;
     _phase = TimerPhase.focus;
@@ -307,13 +313,44 @@ class TimerCubit extends Cubit<TimerState> with WidgetsBindingObserver {
     if (kIsWeb) return;
 
     if (defaultTargetPlatform == TargetPlatform.android) {
-      _motionSub = userAccelerometerEventStream(
+      _gravityInitialized = false;
+      _pickupFrames = 0;
+      _motionSub = accelerometerEventStream(
         samplingPeriod: const Duration(milliseconds: 100),
       ).listen((event) {
-        if (state is! TimerRunning) return;
-        final magnitude =
-            sqrt(event.x * event.x + event.y * event.y + event.z * event.z);
-        if (magnitude > 3.0) pauseTimer();
+        if (!_gravityInitialized) {
+          _gx = event.x; _gy = event.y; _gz = event.z;
+          _gravityInitialized = true;
+          return;
+        }
+
+        if (state is! TimerRunning) {
+          // Keep resting vector up to date while paused/idle
+          _gx = _kGravityAlpha * event.x + (1 - _kGravityAlpha) * _gx;
+          _gy = _kGravityAlpha * event.y + (1 - _kGravityAlpha) * _gy;
+          _gz = _kGravityAlpha * event.z + (1 - _kGravityAlpha) * _gz;
+          _pickupFrames = 0;
+          return;
+        }
+
+        final dx = event.x - _gx;
+        final dy = event.y - _gy;
+        final dz = event.z - _gz;
+        final delta = sqrt(dx * dx + dy * dy + dz * dz);
+
+        if (delta > _kPickupThreshold) {
+          _pickupFrames++;
+          if (_pickupFrames >= _kPickupFrames) {
+            _pickupFrames = 0;
+            pauseTimer();
+          }
+        } else {
+          _pickupFrames = 0;
+          // Slowly update resting vector while phone is still during a session
+          _gx = _kGravityAlpha * event.x + (1 - _kGravityAlpha) * _gx;
+          _gy = _kGravityAlpha * event.y + (1 - _kGravityAlpha) * _gy;
+          _gz = _kGravityAlpha * event.z + (1 - _kGravityAlpha) * _gz;
+        }
       }, onError: (_) {});
     }
 
